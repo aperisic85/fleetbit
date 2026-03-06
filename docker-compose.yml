@@ -15,18 +15,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-
-  migrate:
-    image: ghcr.io/launchbadge/sqlx-cli:0.8.2
-    container_name: fleetbit_migrate
-    environment:
-      DATABASE_URL: postgres://fleetbit:fleetbit@db:5432/fleetbit
-    volumes:
-      - ./migrations:/migrations
-    depends_on:
-      db:
-        condition: service_healthy
-    command: ["migrate", "run", "--source", "/migrations"]
+    networks:
+      - fleetbit_net
 
   api:
     build:
@@ -40,8 +30,26 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      migrate:
-        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+    networks:
+      - fleetbit_net
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.migrate
+    container_name: fleetbit_migrate
+    environment:
+      DATABASE_URL: postgres://fleetbit:fleetbit@db:5432/fleetbit
+    volumes:
+      - ./migrations:/migrations
+    working_dir: /migrations
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - fleetbit_net
 
   ingestor:
     build:
@@ -52,9 +60,15 @@ services:
       DATABASE_URL: postgres://fleetbit:fleetbit@db:5432/fleetbit
       RUST_LOG: info
     depends_on:
-      migrate:
-        condition: service_completed_successfully
+      db:
+        condition: service_healthy
     restart: unless-stopped
+    networks:
+      - fleetbit_net
 
 volumes:
   fleetbit_data:
+
+networks:
+  fleetbit_net:
+    name: fleetbit_net
