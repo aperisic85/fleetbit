@@ -1,0 +1,15 @@
+services:
+  db:
+    image: timescale/timescaledb-ha:pg16
+    container_name: fleetbit_db
+    environment:
+      POSTGRES_USER: fleetbit
+      POSTGRES_PASSWORD: fleetbit
+      POSTGRES_DB: fleetbit
+    ports:
+      - "5432:5432"
+    volumes:
+      - fleetbit_data:/var/lib/postgresql/data
+
+volumes:
+  fleetbit_data:

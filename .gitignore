@@ -1,1 +1,5 @@
+# .gitignore
 /target
+**/*.rs.bk
+.env
+Cargo.lock
