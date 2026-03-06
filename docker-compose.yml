@@ -10,6 +10,51 @@ services:
       - "5432:5432"
     volumes:
       - fleetbit_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fleetbit"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    image: ghcr.io/launchbadge/sqlx-cli:0.8.2
+    container_name: fleetbit_migrate
+    environment:
+      DATABASE_URL: postgres://fleetbit:fleetbit@db:5432/fleetbit
+    volumes:
+      - ./migrations:/migrations
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["migrate", "run", "--source", "/migrations"]
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: fleetbit_api
+    environment:
+      DATABASE_URL: postgres://fleetbit:fleetbit@db:5432/fleetbit
+      BIND_ADDR: 0.0.0.0:3000
+      RUST_LOG: info
+    ports:
+      - "3000:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  ingestor:
+    build:
+      context: .
+      dockerfile: Dockerfile.ingestor
+    container_name: fleetbit_ingestor
+    environment:
+      DATABASE_URL: postgres://fleetbit:fleetbit@db:5432/fleetbit
+      RUST_LOG: info
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
 
 volumes:
   fleetbit_data:
