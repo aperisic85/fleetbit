@@ -25,7 +25,7 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
         Ok(vessels) => {
             let msg = serde_json::json!({ "type": "snapshot", "vessels": vessels });
             if socket
-                .send(Message::Text(msg.to_string()))
+                .send(Message::Text(msg.to_string().into()))
                 .await
                 .is_err()
             {
@@ -48,7 +48,7 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
                 match result {
                     Ok(pos) => {
                         let msg = serde_json::json!({ "type": "update", "position": *pos });
-                        if socket.send(Message::Text(msg.to_string())).await.is_err() {
+                        if socket.send(Message::Text(msg.to_string().into())).await.is_err() {
                             break; // klijent se diskonektirao
                         }
                     }
