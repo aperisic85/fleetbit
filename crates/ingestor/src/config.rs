@@ -15,7 +15,7 @@ pub struct IngestorConfig {
     pub max_reconnect_attempts: u32,
     pub read_timeout: Duration,
 }
-
+//nothing
 impl Default for IngestorConfig {
     fn default() -> Self {
         Self {
