@@ -1,5 +1,6 @@
-use crate::models::vessel::{PositionUpdate, StaticUpdate, VesselLive};
+use crate::models::vessel::{PositionUpdate, StaticUpdate, Vessel, VesselLive, VesselPosition};
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 
 pub async fn insert_position(pool: &PgPool, pos: &PositionUpdate) -> Result<()> {
@@ -80,4 +81,68 @@ pub async fn get_live_vessels(pool: &PgPool) -> Result<Vec<VesselLive>> {
     .await?;
 
     Ok(vessels)
+}
+
+/// Dohvati statičke podatke jednog broda.
+pub async fn get_vessel(pool: &PgPool, mmsi: i32) -> Result<Option<Vessel>> {
+    let vessel = sqlx::query_as::<_, Vessel>(
+        r#"
+        SELECT mmsi, imo, name, callsign, ship_type, length, width, draught,
+               destination, last_seen, updated_at
+        FROM vessels
+        WHERE mmsi = $1
+        "#,
+    )
+    .bind(mmsi)
+    .fetch_optional(pool)
+    .await?;
+    Ok(vessel)
+}
+
+/// Dohvati historijski trag broda u zadanom vremenskom rasponu.
+pub async fn get_vessel_track(
+    pool: &PgPool,
+    mmsi: i32,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+    limit: i64,
+) -> Result<Vec<VesselPosition>> {
+    let positions = sqlx::query_as::<_, VesselPosition>(
+        r#"
+        SELECT time, mmsi, lat, lon, sog, cog, heading, nav_status, message_type, station_id
+        FROM vessel_positions
+        WHERE mmsi = $1
+          AND time >= $2
+          AND time <= $3
+        ORDER BY time ASC
+        LIMIT $4
+        "#,
+    )
+    .bind(mmsi)
+    .bind(from)
+    .bind(to)
+    .bind(limit)
+    .fetch_all(pool)
+    .await?;
+    Ok(positions)
+}
+
+/// Dohvati sve pozicije novije od `since` — koristi broadcaster za WebSocket.
+pub async fn get_positions_since(
+    pool: &PgPool,
+    since: DateTime<Utc>,
+) -> Result<Vec<VesselPosition>> {
+    let positions = sqlx::query_as::<_, VesselPosition>(
+        r#"
+        SELECT time, mmsi, lat, lon, sog, cog, heading, nav_status, message_type, station_id
+        FROM vessel_positions
+        WHERE time > $1
+        ORDER BY time ASC
+        LIMIT 500
+        "#,
+    )
+    .bind(since)
+    .fetch_all(pool)
+    .await?;
+    Ok(positions)
 }
