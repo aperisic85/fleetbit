@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT DISTINCT ON (vp.mmsi)\n            vp.mmsi,\n            v.name,\n            vp.lat,\n            vp.lon,\n            vp.sog,\n            vp.cog,\n            vp.heading,\n            vp.nav_status,\n            vp.time as last_seen\n        FROM vessel_positions vp\n        LEFT JOIN vessels v ON v.mmsi = vp.mmsi\n        ORDER BY vp.mmsi, vp.time DESC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "mmsi",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "lat",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 3,
+        "name": "lon",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 4,
+        "name": "sog",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 5,
+        "name": "cog",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 6,
+        "name": "heading",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 7,
+        "name": "nav_status",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 8,
+        "name": "last_seen",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "13a2c21db054f844ef472203dd8ebd59e27cef61ce6f387c56fbf97a70fdbbaa"
+}
