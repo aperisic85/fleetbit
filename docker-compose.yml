@@ -25,13 +25,25 @@ services:
     container_name: fleetbit_api
     environment:
       DATABASE_URL: postgres://fleetbit:fleetbit@db:5432/fleetbit
-      BIND_ADDR: 0.0.0.0:3000
+      BIND_ADDR: 0.0.0.0:3001
       RUST_LOG: info
     ports:
-      - "3000:3000"
+      - "3001:3001"
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - fleetbit_net
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: fleetbit_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - api
     networks:
       - fleetbit_net
 

@@ -1,0 +1,113 @@
+import { useEffect, useState } from 'react';
+import type { Vessel, VesselLive, TrackPoint } from '../types';
+import { fetchVessel, fetchTrack } from '../api';
+
+interface Props {
+  mmsi: number;
+  livePosition: VesselLive | null;
+  onClose: () => void;
+}
+
+function Row({ label, value }: { label: string; value: string | number | null | undefined }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid #334155' }}>
+      <span style={{ color: '#94a3b8', fontSize: 12 }}>{label}</span>
+      <span style={{ fontSize: 12, fontWeight: 500 }}>{value ?? '—'}</span>
+    </div>
+  );
+}
+
+export function VesselPanel({ mmsi, livePosition, onClose }: Props) {
+  const [vessel, setVessel] = useState<Vessel | null>(null);
+  const [track, setTrack] = useState<TrackPoint[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([fetchVessel(mmsi), fetchTrack(mmsi, undefined, undefined, 500)])
+      .then(([det, trk]) => {
+        setVessel(det.vessel);
+        setTrack(trk.track ?? []);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [mmsi]);
+
+  const live = livePosition;
+
+  return (
+    <div style={{
+      position: 'absolute',
+      top: 12,
+      right: 12,
+      width: 280,
+      background: '#1e293b',
+      color: '#e2e8f0',
+      borderRadius: 8,
+      boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
+      zIndex: 1000,
+      overflow: 'hidden',
+    }}>
+      <div style={{
+        padding: '12px 16px',
+        background: '#0f172a',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 14 }}>
+            {vessel?.name ?? live?.name ?? `MMSI ${mmsi}`}
+          </div>
+          <div style={{ fontSize: 11, color: '#94a3b8' }}>MMSI: {mmsi}</div>
+        </div>
+        <button
+          onClick={onClose}
+          style={{
+            background: 'none', border: 'none', color: '#94a3b8',
+            cursor: 'pointer', fontSize: 18, lineHeight: 1,
+          }}
+        >×</button>
+      </div>
+
+      <div style={{ padding: '12px 16px' }}>
+        {loading ? (
+          <div style={{ color: '#64748b', fontSize: 13 }}>Učitavanje...</div>
+        ) : (
+          <>
+            <div style={{ fontSize: 11, fontWeight: 600, color: '#60a5fa', marginBottom: 6, textTransform: 'uppercase' }}>
+              Statički podaci
+            </div>
+            <Row label="IMO" value={vessel?.imo} />
+            <Row label="Callsign" value={vessel?.callsign} />
+            <Row label="Tip broda" value={vessel?.ship_type} />
+            <Row label="Duljina" value={vessel?.length ? `${vessel.length} m` : null} />
+            <Row label="Širina" value={vessel?.width ? `${vessel.width} m` : null} />
+            <Row label="Gaz" value={vessel?.draught ? `${vessel.draught} m` : null} />
+            <Row label="Odredište" value={vessel?.destination} />
+
+            {live && (
+              <>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#34d399', marginTop: 12, marginBottom: 6, textTransform: 'uppercase' }}>
+                  Live pozicija
+                </div>
+                <Row label="Lat" value={live.lat?.toFixed(5)} />
+                <Row label="Lon" value={live.lon?.toFixed(5)} />
+                <Row label="SOG" value={live.sog != null ? `${live.sog.toFixed(1)} kn` : null} />
+                <Row label="COG" value={live.cog != null ? `${live.cog.toFixed(0)}°` : null} />
+                <Row label="Heading" value={live.heading != null ? `${live.heading}°` : null} />
+              </>
+            )}
+
+            <div style={{ fontSize: 11, fontWeight: 600, color: '#f59e0b', marginTop: 12, marginBottom: 6, textTransform: 'uppercase' }}>
+              Trag (zadnjih 24h)
+            </div>
+            <div style={{ color: '#94a3b8', fontSize: 12 }}>
+              {track.length} pozicija zabilježeno
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
