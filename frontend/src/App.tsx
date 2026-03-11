@@ -135,6 +135,11 @@ export default function App() {
     return vesselList;
   }, [vesselList, filter]);
 
+  const mapVessels = useMemo(() => {
+    const cutoff = Date.now() - 5 * 60 * 1000;
+    return filteredVessels.filter(v => v.last_seen != null && new Date(v.last_seen).getTime() >= cutoff);
+  }, [filteredVessels]);
+
   const handleSelect = (mmsi: number) => {
     setSelectedMmsi(mmsi);
     if (isMobile) setSidebarOpen(false);
@@ -212,7 +217,7 @@ export default function App() {
         )}
 
         <LiveMap
-          vessels={filteredVessels}
+          vessels={mapVessels}
           selectedMmsi={selectedMmsi}
           track={track}
           onSelect={handleSelect}

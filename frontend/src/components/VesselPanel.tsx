@@ -18,6 +18,19 @@ function Row({ label, value }: { label: string; value: string | number | null | 
   );
 }
 
+function formatLastSeen(ts: string | null | undefined): string {
+  if (!ts) return '—';
+  const date = new Date(ts);
+  const diffMs = Date.now() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const timeStr = date.toLocaleTimeString('hr-HR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  if (diffSec < 60) return `${timeStr} (${diffSec}s nazad)`;
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${timeStr} (${diffMin} min nazad)`;
+  const diffH = Math.floor(diffMin / 60);
+  return `${timeStr} (${diffH}h nazad)`;
+}
+
 export function VesselPanel({ mmsi, livePosition, onClose, isMobile }: Props) {
   const [vessel, setVessel] = useState<Vessel | null>(null);
   const [track, setTrack] = useState<TrackPoint[]>([]);
@@ -115,6 +128,7 @@ export function VesselPanel({ mmsi, livePosition, onClose, isMobile }: Props) {
                 <Row label="SOG" value={live.sog != null ? `${live.sog.toFixed(1)} kn` : null} />
                 <Row label="COG" value={live.cog != null ? `${live.cog.toFixed(0)}°` : null} />
                 <Row label="Heading" value={live.heading != null ? `${live.heading}°` : null} />
+                <Row label="Zadnja AIS poruka" value={formatLastSeen(live.last_seen)} />
               </>
             )}
 
