@@ -4,6 +4,7 @@ use std::sync::Arc;
 use tokio::sync::broadcast;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
+mod auth;
 mod error;
 mod routes;
 mod state;
@@ -23,10 +24,21 @@ async fn main() -> Result<()> {
         .init();
 
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL nije postavljen");
+    let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| {
+        tracing::warn!("JWT_SECRET nije postavljen — koristi se privremeni random ključ!");
+        use rand::Rng;
+        let secret: String = rand::thread_rng()
+            .sample_iter(&rand::distributions::Alphanumeric)
+            .take(64)
+            .map(char::from)
+            .collect();
+        secret
+    });
+
     let pool = shared::db::pool::create_pool(&database_url).await?;
     tracing::info!("Spojen na bazu podataka");
 
-    let app_state = AppState::new(pool.clone());
+    let app_state = AppState::new(pool.clone(), jwt_secret);
 
     // Pozadinski task: prati nove pozicije i šalje ih WS klijentima
     tokio::spawn(run_position_broadcaster(
@@ -35,6 +47,7 @@ async fn main() -> Result<()> {
     ));
 
     let app = routes::router()
+        .layer(axum::Extension(app_state.jwt_secret.clone()))
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
         .with_state(app_state);
