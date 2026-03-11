@@ -95,11 +95,11 @@ export function VesselPanel({ mmsi, livePosition, onClose, isMobile }: Props) {
         ) : (
           <>
             <div style={{ fontSize: 11, fontWeight: 600, color: '#60a5fa', marginBottom: 6, textTransform: 'uppercase' }}>
-              Statički podaci
+              Podaci o plovilu
             </div>
             <Row label="IMO" value={vessel?.imo} />
             <Row label="Callsign" value={vessel?.callsign} />
-            <Row label="Tip broda" value={vessel?.ship_type} />
+            <Row label="Tip plovila" value={vessel?.ship_type} />
             <Row label="Duljina" value={vessel?.length ? `${vessel.length} m` : null} />
             <Row label="Širina" value={vessel?.width ? `${vessel.width} m` : null} />
             <Row label="Gaz" value={vessel?.draught ? `${vessel.draught} m` : null} />
@@ -108,7 +108,7 @@ export function VesselPanel({ mmsi, livePosition, onClose, isMobile }: Props) {
             {live && (
               <>
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#34d399', marginTop: 12, marginBottom: 6, textTransform: 'uppercase' }}>
-                  Live pozicija
+                  Trenutna pozicija
                 </div>
                 <Row label="Lat" value={live.lat?.toFixed(5)} />
                 <Row label="Lon" value={live.lon?.toFixed(5)} />
@@ -119,10 +119,10 @@ export function VesselPanel({ mmsi, livePosition, onClose, isMobile }: Props) {
             )}
 
             <div style={{ fontSize: 11, fontWeight: 600, color: '#f59e0b', marginTop: 12, marginBottom: 6, textTransform: 'uppercase' }}>
-              Trag (zadnjih 24h)
+              Ruta (zadnjih 24h)
             </div>
             <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-              {track.length} pozicija zabilježeno
+              {track.length} točaka rute zabilježeno
             </div>
           </>
         )}

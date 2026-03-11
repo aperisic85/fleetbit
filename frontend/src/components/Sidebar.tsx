@@ -65,9 +65,9 @@ function speedBarWidth(v: VesselLive): number {
 }
 
 const FILTERS: { key: FilterStatus; label: string }[] = [
-  { key: 'all',      label: 'Svi'        },
-  { key: 'underway', label: 'U plovidbi' },
-  { key: 'anchored', label: 'Sidreni'    },
+  { key: 'all',      label: 'Sva plovila'  },
+  { key: 'underway', label: 'Na plovidbi'  },
+  { key: 'anchored', label: 'U luci'       },
 ];
 
 // Lupa SVG ikona
@@ -138,7 +138,7 @@ export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelec
             {loading ? (
               <span style={{ opacity: 0.5 }}>Učitavanje...</span>
             ) : (
-              <>{vessels.length} brodova aktivno</>
+              <>{vessels.length} plovila u floti</>
             )}
           </div>
         </div>
@@ -185,7 +185,7 @@ export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelec
 
           <input
             type="text"
-            placeholder="Pretraži brodove..."
+            placeholder="Pretraži plovila..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
@@ -325,7 +325,7 @@ export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelec
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: barWidth > 0 ? 6 : 4 }}>
                 <span style={{ fontSize: 11, flexShrink: 0, color }}>{statusIcon(v)}</span>
                 <div style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, color: isSelected ? '#fff' : 'var(--text-primary)' }}>
-                  {v.name ?? <span style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>Nepoznat</span>}
+                  {v.name ?? <span style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>Nepoznato plovilo</span>}
                 </div>
                 <span style={{
                   fontSize: 10,
@@ -356,7 +356,7 @@ export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelec
         })}
         {!loading && filtered.length === 0 && (
           <div style={{ padding: 16, color: 'var(--text-dim)', fontSize: 13, textAlign: 'center' }}>
-            {search ? 'Nema rezultata' : 'Nema aktivnih brodova'}
+            {search ? 'Nema rezultata' : 'Nema plovila u floti'}
           </div>
         )}
       </div>
