@@ -10,7 +10,21 @@ export default function App() {
   const [selectedMmsi, setSelectedMmsi] = useState<number | null>(null);
   const [track, setTrack] = useState<TrackPoint[]>([]);
   const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    const check = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (!mobile) setSidebarOpen(true);
+      else setSidebarOpen(false);
+    };
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   // Inicijalni load
   useEffect(() => {
@@ -62,20 +76,78 @@ export default function App() {
 
   const vesselList = Array.from(vessels.values()).filter((v) => v.lat != null && v.lon != null);
 
-  return (
-    <div style={{ display: 'flex', height: '100vh', fontFamily: 'system-ui, sans-serif' }}>
-      <Sidebar
-        vessels={vesselList}
-        selectedMmsi={selectedMmsi}
-        onSelect={setSelectedMmsi}
-      />
+  const handleSelect = (mmsi: number) => {
+    setSelectedMmsi(mmsi);
+    if (isMobile) setSidebarOpen(false);
+  };
 
-      <div style={{ flex: 1, position: 'relative' }}>
+  return (
+    <div style={{ display: 'flex', height: '100vh', fontFamily: 'system-ui, sans-serif', position: 'relative', overflow: 'hidden' }}>
+
+      {/* Mobile backdrop */}
+      {isMobile && sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 1040,
+          }}
+        />
+      )}
+
+      {/* Sidebar — overlay on mobile, normal on desktop */}
+      <div style={{
+        ...(isMobile ? {
+          position: 'absolute',
+          top: 0,
+          left: sidebarOpen ? 0 : -280,
+          height: '100%',
+          zIndex: 1050,
+          transition: 'left 0.25s ease',
+        } : {}),
+        flexShrink: 0,
+      }}>
+        <Sidebar
+          vessels={vesselList}
+          selectedMmsi={selectedMmsi}
+          onSelect={handleSelect}
+        />
+      </div>
+
+      {/* Map area */}
+      <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
+
+        {/* Hamburger button — only on mobile */}
+        {isMobile && (
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            style={{
+              position: 'absolute',
+              top: 12,
+              left: 12,
+              zIndex: 1000,
+              background: '#1e293b',
+              border: 'none',
+              color: '#e2e8f0',
+              borderRadius: 6,
+              padding: '8px 12px',
+              fontSize: 18,
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+              lineHeight: 1,
+            }}
+          >
+            ☰
+          </button>
+        )}
+
         <LiveMap
           vessels={vesselList}
           selectedMmsi={selectedMmsi}
           track={track}
-          onSelect={setSelectedMmsi}
+          onSelect={handleSelect}
         />
 
         {/* WS status badge */}
@@ -99,6 +171,7 @@ export default function App() {
             mmsi={selectedMmsi}
             livePosition={vessels.get(selectedMmsi) ?? null}
             onClose={() => setSelectedMmsi(null)}
+            isMobile={isMobile}
           />
         )}
       </div>

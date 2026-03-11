@@ -1,4 +1,5 @@
-import { MapContainer, TileLayer, Polyline } from 'react-leaflet';
+import { useEffect } from 'react';
+import { MapContainer, TileLayer, Polyline, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { VesselLive, TrackPoint } from '../types';
 import { VesselMarker } from './VesselMarker';
@@ -10,6 +11,20 @@ interface Props {
   onSelect: (mmsi: number) => void;
 }
 
+function MapController({ vessels, selectedMmsi }: { vessels: VesselLive[]; selectedMmsi: number | null }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (selectedMmsi == null) return;
+    const vessel = vessels.find((v) => v.mmsi === selectedMmsi);
+    if (vessel?.lat != null && vessel?.lon != null) {
+      map.flyTo([vessel.lat, vessel.lon], Math.max(map.getZoom(), 12), { duration: 1.2 });
+    }
+  }, [selectedMmsi]);
+
+  return null;
+}
+
 export function LiveMap({ vessels, selectedMmsi, track, onSelect }: Props) {
   const trackPositions = track
     .filter((p) => p.lat != null && p.lon != null)
@@ -19,12 +34,13 @@ export function LiveMap({ vessels, selectedMmsi, track, onSelect }: Props) {
     <MapContainer
       center={[45.0, 14.5]}
       zoom={7}
-      style={{ flex: 1, height: '100%' }}
+      style={{ width: '100%', height: '100%' }}
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      <MapController vessels={vessels} selectedMmsi={selectedMmsi} />
       {trackPositions.length > 1 && (
         <Polyline positions={trackPositions} color="#f59e0b" weight={2} opacity={0.7} />
       )}

@@ -6,6 +6,7 @@ interface Props {
   mmsi: number;
   livePosition: VesselLive | null;
   onClose: () => void;
+  isMobile?: boolean;
 }
 
 function Row({ label, value }: { label: string; value: string | number | null | undefined }) {
@@ -17,7 +18,7 @@ function Row({ label, value }: { label: string; value: string | number | null | 
   );
 }
 
-export function VesselPanel({ mmsi, livePosition, onClose }: Props) {
+export function VesselPanel({ mmsi, livePosition, onClose, isMobile }: Props) {
   const [vessel, setVessel] = useState<Vessel | null>(null);
   const [track, setTrack] = useState<TrackPoint[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,18 +36,32 @@ export function VesselPanel({ mmsi, livePosition, onClose }: Props) {
 
   const live = livePosition;
 
+  const mobileStyle: React.CSSProperties = {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    width: '100%',
+    borderRadius: '12px 12px 0 0',
+    maxHeight: '55vh',
+    overflowY: 'auto',
+  };
+
+  const desktopStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 280,
+  };
+
   return (
     <div style={{
-      position: 'absolute',
-      top: 12,
-      right: 12,
-      width: 280,
+      ...(isMobile ? mobileStyle : desktopStyle),
       background: '#1e293b',
       color: '#e2e8f0',
-      borderRadius: 8,
       boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
       zIndex: 1000,
-      overflow: 'hidden',
+      overflow: isMobile ? 'auto' : 'hidden',
     }}>
       <div style={{
         padding: '12px 16px',
@@ -54,6 +69,9 @@ export function VesselPanel({ mmsi, livePosition, onClose }: Props) {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
+        position: isMobile ? 'sticky' : 'static',
+        top: 0,
+        zIndex: 1,
       }}>
         <div>
           <div style={{ fontWeight: 700, fontSize: 14 }}>
