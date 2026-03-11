@@ -9,6 +9,27 @@ interface Props {
   filter: FilterStatus;
   onFilterChange: (f: FilterStatus) => void;
   onSelect: (mmsi: number) => void;
+  loading?: boolean;
+}
+
+function SkeletonCard() {
+  return (
+    <div style={{
+      padding: '9px 12px',
+      borderRadius: 8,
+      border: '1px solid #1e293b',
+      borderLeft: '3px solid #1e293b',
+      background: '#0f172a',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+        <div className="skeleton" style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0 }} />
+        <div className="skeleton" style={{ height: 13, flex: 1, maxWidth: '60%' }} />
+        <div className="skeleton" style={{ height: 16, width: 52, borderRadius: 20 }} />
+      </div>
+      <div className="skeleton" style={{ height: 2, marginBottom: 5 }} />
+      <div className="skeleton" style={{ height: 10, width: 80 }} />
+    </div>
+  );
 }
 
 function speedLabel(v: VesselLive): string {
@@ -49,7 +70,7 @@ const FILTERS: { key: FilterStatus; label: string }[] = [
   { key: 'anchored', label: 'Sidreni'     },
 ];
 
-export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelect }: Props) {
+export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelect, loading = false }: Props) {
   const [search, setSearch] = useState('');
 
   const filtered = [...vessels]
@@ -79,7 +100,11 @@ export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelec
       <div style={{ padding: '14px 16px', borderBottom: '1px solid #334155' }}>
         <div style={{ fontSize: 18, fontWeight: 700, color: '#60a5fa' }}>⚓ FleetBit</div>
         <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
-          {vessels.length} brodova aktivno
+          {loading ? (
+            <span style={{ opacity: 0.5 }}>Učitavanje...</span>
+          ) : (
+            <>{vessels.length} brodova aktivno</>
+          )}
         </div>
       </div>
 
@@ -135,7 +160,8 @@ export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelec
 
       {/* Vessel list */}
       <div style={{ overflowY: 'auto', flex: 1, padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-        {filtered.map((v) => {
+        {loading && Array.from({ length: 7 }).map((_, i) => <SkeletonCard key={i} />)}
+        {!loading && filtered.map((v) => {
           const color = speedColor(v);
           const isSelected = selectedMmsi === v.mmsi;
           const barWidth = speedBarWidth(v);
@@ -203,7 +229,7 @@ export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelec
             </div>
           );
         })}
-        {filtered.length === 0 && (
+        {!loading && filtered.length === 0 && (
           <div style={{ padding: 16, color: '#64748b', fontSize: 13, textAlign: 'center' }}>
             {search ? 'Nema rezultata' : 'Nema aktivnih brodova'}
           </div>
