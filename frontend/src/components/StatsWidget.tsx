@@ -128,7 +128,7 @@ function IconSpeed({ color }: { color: string }) {
 function Bar({ value, max, color }: { value: number; max: number; color: string }) {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0;
   return (
-    <div style={{ flex: 1, height: 3, background: '#1e293b', borderRadius: 2, overflow: 'hidden' }}>
+    <div style={{ flex: 1, height: 3, background: 'var(--bg-surface)', borderRadius: 2, overflow: 'hidden' }}>
       <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 2, transition: 'width 0.6s ease' }} />
     </div>
   );
@@ -142,7 +142,7 @@ function SpeedRow({ icon, label, count, total, color }: {
     <div style={{ marginBottom: 7 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
         <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>{icon}</span>
-        <span style={{ fontSize: 10, color: '#94a3b8', flex: 1 }}>{label}</span>
+        <span style={{ fontSize: 10, color: 'var(--text-muted)', flex: 1 }}>{label}</span>
         <span style={{ fontSize: 10, fontWeight: 700, color }}>{animated}</span>
       </div>
       <Bar value={count} max={total} color={color} />
@@ -192,14 +192,14 @@ export function StatsWidget({ vessels }: Props) {
       bottom: 'calc(44px + env(safe-area-inset-bottom, 0px))',
       right: 12,
       zIndex: 1000,
-      background: 'rgba(15,23,42,0.93)',
+      background: 'color-mix(in srgb, var(--bg-base) 93%, transparent)',
       backdropFilter: 'blur(8px)',
-      border: '1px solid #334155',
+      border: '1px solid var(--border-color)',
       borderRadius: 10,
       padding: '12px 14px',
       width: 176,
       boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-      color: '#e2e8f0',
+      color: 'var(--text-primary)',
     }}>
 
       {/* Header */}
@@ -220,15 +220,15 @@ export function StatsWidget({ vessels }: Props) {
       </div>
 
       {/* Total count — animated */}
-      <div style={{ textAlign: 'center', marginBottom: 10, padding: '6px 0', borderBottom: '1px solid #1e293b' }}>
-        <div style={{ fontSize: 30, fontWeight: 800, color: '#e2e8f0', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+      <div style={{ textAlign: 'center', marginBottom: 10, padding: '6px 0', borderBottom: '1px solid var(--bg-surface)' }}>
+        <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
           {animTotal}
         </div>
-        <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>brodova aktivno</div>
+        <div style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 2 }}>brodova aktivno</div>
       </div>
 
       {/* Speed rows */}
-      <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>
         Distribucija
       </div>
       <SpeedRow icon={<IconAnchor color="#94a3b8" />} label="Sidreno / Vez" count={anchored} total={total} color="#94a3b8" />
@@ -237,9 +237,9 @@ export function StatsWidget({ vessels }: Props) {
       <SpeedRow icon={<IconFast color="#f59e0b" />}   label="Brzo  12+ kn"    count={s12p}    total={total} color="#f59e0b" />
 
       {/* Avg speed + sparkline */}
-      <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #1e293b' }}>
+      <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--bg-surface)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#64748b' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-dim)' }}>
             <IconSpeed color="#f59e0b" />
             Avg brzina
           </span>

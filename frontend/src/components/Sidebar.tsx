@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { VesselLive } from '../types';
+import { useTheme } from '../ThemeContext';
 
 export type FilterStatus = 'all' | 'underway' | 'anchored';
 
@@ -17,9 +18,9 @@ function SkeletonCard() {
     <div style={{
       padding: '9px 12px',
       borderRadius: 8,
-      border: '1px solid #1e293b',
-      borderLeft: '3px solid #1e293b',
-      background: '#0f172a',
+      border: '1px solid var(--bg-surface)',
+      borderLeft: '3px solid var(--bg-surface)',
+      background: 'var(--bg-base)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
         <div className="skeleton" style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0 }} />
@@ -90,6 +91,7 @@ function ClearIcon() {
 }
 
 export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelect, loading = false }: Props) {
+  const { theme, toggleTheme } = useTheme();
   const [search, setSearch] = useState('');
   // Animated filter slider
   const filterBarRef = useRef<HTMLDivElement>(null);
@@ -120,8 +122,8 @@ export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelec
   return (
     <div style={{
       width: 260,
-      background: '#1e293b',
-      color: '#e2e8f0',
+      background: 'var(--bg-surface)',
+      color: 'var(--text-primary)',
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',
@@ -129,25 +131,51 @@ export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelec
       height: '100%',
     }}>
       {/* Header */}
-      <div style={{ padding: '14px 16px', borderBottom: '1px solid #334155' }}>
-        <div style={{ fontSize: 18, fontWeight: 700, color: '#60a5fa' }}>⚓ FleetBit</div>
-        <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
-          {loading ? (
-            <span style={{ opacity: 0.5 }}>Učitavanje...</span>
-          ) : (
-            <>{vessels.length} brodova aktivno</>
-          )}
+      <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#60a5fa' }}>⚓ FleetBit</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+            {loading ? (
+              <span style={{ opacity: 0.5 }}>Učitavanje...</span>
+            ) : (
+              <>{vessels.length} brodova aktivno</>
+            )}
+          </div>
         </div>
+        <button
+          onClick={toggleTheme}
+          title={theme === 'dark' ? 'Prebaci na svjetlu temu' : 'Prebaci na tamnu temu'}
+          style={{
+            background: 'none',
+            border: '1px solid var(--border-color)',
+            borderRadius: 6,
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+            padding: '4px 6px',
+            fontSize: 14,
+            lineHeight: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'color 0.2s, border-color 0.2s',
+            flexShrink: 0,
+            marginTop: 2,
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'; }}
+        >
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
       </div>
 
       {/* Search s ikonom i clear buttonom */}
-      <div style={{ padding: '10px 12px', borderBottom: '1px solid #334155' }}>
+      <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-color)' }}>
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
           {/* Lupa ikona */}
           <span style={{
             position: 'absolute',
             left: 9,
-            color: '#64748b',
+            color: 'var(--text-dim)',
             display: 'flex',
             alignItems: 'center',
             pointerEvents: 'none',
@@ -162,10 +190,10 @@ export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelec
             onChange={(e) => setSearch(e.target.value)}
             style={{
               width: '100%',
-              background: '#0f172a',
-              border: '1px solid #334155',
+              background: 'var(--bg-base)',
+              border: '1px solid var(--border-color)',
               borderRadius: 6,
-              color: '#e2e8f0',
+              color: 'var(--text-primary)',
               padding: '7px 30px 7px 30px',
               fontSize: 13,
               outline: 'none',
@@ -173,7 +201,7 @@ export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelec
               transition: 'border-color 0.15s',
             }}
             onFocus={(e) => { e.currentTarget.style.borderColor = '#3b82f6'; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = '#334155'; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; }}
           />
 
           {/* Clear button — prikaži samo kad ima teksta */}
@@ -185,7 +213,7 @@ export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelec
                 right: 7,
                 background: 'none',
                 border: 'none',
-                color: '#64748b',
+                color: 'var(--text-dim)',
                 cursor: 'pointer',
                 padding: 3,
                 display: 'flex',
@@ -193,8 +221,8 @@ export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelec
                 borderRadius: 4,
                 transition: 'color 0.15s',
               }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#e2e8f0'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#64748b'; }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-dim)'; }}
               title="Obriši pretragu"
             >
               <ClearIcon />
@@ -204,14 +232,14 @@ export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelec
       </div>
 
       {/* Filter pill tabs s animiranim sliderom */}
-      <div style={{ padding: '8px 12px', borderBottom: '1px solid #334155' }}>
+      <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>
         <div
           ref={filterBarRef}
           style={{
             position: 'relative',
             display: 'flex',
             gap: 2,
-            background: '#0f172a',
+            background: 'var(--bg-base)',
             borderRadius: 22,
             padding: 3,
           }}
@@ -246,7 +274,7 @@ export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelec
                 border: 'none',
                 cursor: 'pointer',
                 background: 'transparent',
-                color: filter === key ? '#fff' : '#64748b',
+                color: filter === key ? '#fff' : 'var(--text-dim)',
                 transition: 'color 0.2s',
                 position: 'relative',
                 zIndex: 1,
@@ -273,31 +301,31 @@ export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelec
                 padding: '9px 12px',
                 cursor: 'pointer',
                 borderRadius: 8,
-                border: `1px solid ${isSelected ? color : '#334155'}`,
+                border: `1px solid ${isSelected ? color : 'var(--border-color)'}`,
                 borderLeft: `3px solid ${color}`,
-                background: isSelected ? `${color}18` : '#0f172a',
+                background: isSelected ? `${color}18` : 'var(--bg-base)',
                 transition: 'background 0.15s, border-color 0.15s, box-shadow 0.15s',
                 boxShadow: isSelected ? `0 0 0 1px ${color}40, 0 2px 8px #0008` : '0 1px 3px #0004',
               }}
               onMouseEnter={(e) => {
                 if (!isSelected) {
                   const el = e.currentTarget as HTMLDivElement;
-                  el.style.background = '#1e293b';
+                  el.style.background = 'var(--bg-surface-hover)';
                   el.style.boxShadow = `0 0 0 1px ${color}30, 0 2px 8px #0006`;
                 }
               }}
               onMouseLeave={(e) => {
                 if (!isSelected) {
                   const el = e.currentTarget as HTMLDivElement;
-                  el.style.background = '#0f172a';
+                  el.style.background = 'var(--bg-base)';
                   el.style.boxShadow = '0 1px 3px #0004';
                 }
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: barWidth > 0 ? 6 : 4 }}>
                 <span style={{ fontSize: 11, flexShrink: 0, color }}>{statusIcon(v)}</span>
-                <div style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, color: isSelected ? '#fff' : '#e2e8f0' }}>
-                  {v.name ?? <span style={{ color: '#64748b', fontStyle: 'italic' }}>Nepoznat</span>}
+                <div style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, color: isSelected ? '#fff' : 'var(--text-primary)' }}>
+                  {v.name ?? <span style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>Nepoznat</span>}
                 </div>
                 <span style={{
                   fontSize: 10,
@@ -315,19 +343,19 @@ export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelec
               </div>
 
               {barWidth > 0 && (
-                <div style={{ height: 2, background: '#1e293b', borderRadius: 2, overflow: 'hidden', marginBottom: 4 }}>
+                <div style={{ height: 2, background: 'var(--bg-surface)', borderRadius: 2, overflow: 'hidden', marginBottom: 4 }}>
                   <div style={{ height: '100%', width: `${barWidth}%`, background: color, borderRadius: 2, transition: 'width 0.4s ease' }} />
                 </div>
               )}
 
-              <div style={{ fontSize: 10, color: '#475569', letterSpacing: '0.03em' }}>
+              <div style={{ fontSize: 10, color: 'var(--text-dimmer)', letterSpacing: '0.03em' }}>
                 MMSI {v.mmsi}
               </div>
             </div>
           );
         })}
         {!loading && filtered.length === 0 && (
-          <div style={{ padding: 16, color: '#64748b', fontSize: 13, textAlign: 'center' }}>
+          <div style={{ padding: 16, color: 'var(--text-dim)', fontSize: 13, textAlign: 'center' }}>
             {search ? 'Nema rezultata' : 'Nema aktivnih brodova'}
           </div>
         )}
