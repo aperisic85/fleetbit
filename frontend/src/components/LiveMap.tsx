@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import type { VesselLive, TrackPoint } from '../types';
 import { VesselMarker } from './VesselMarker';
 import { ClusterMarker } from './ClusterMarker';
+import { HeatmapLayer } from './HeatmapLayer';
 
 interface Props {
   vessels: VesselLive[];
@@ -142,7 +143,7 @@ function MapController({ vessels, selectedMmsi }: { vessels: VesselLive[]; selec
   return null;
 }
 
-function MapContent({ vessels, selectedMmsi, track, onSelect }: Props) {
+function MapContent({ vessels, selectedMmsi, track, onSelect, showHeatmap }: Props & { showHeatmap: boolean }) {
   const [zoom, setZoom] = useState(7);
   const map = useMap();
 
@@ -164,6 +165,7 @@ function MapContent({ vessels, selectedMmsi, track, onSelect }: Props) {
 
   return (
     <>
+      {showHeatmap && <HeatmapLayer vessels={vessels} />}
       <AnimatedTrack positions={trackPositions} />
       {clusters.map((c) => (
         <ClusterMarker
@@ -187,27 +189,60 @@ function MapContent({ vessels, selectedMmsi, track, onSelect }: Props) {
 }
 
 export function LiveMap({ vessels, selectedMmsi, track, onSelect }: Props) {
+  const [showHeatmap, setShowHeatmap] = useState(false);
+
   return (
-    <MapContainer
-      center={[45.0, 14.5]}
-      zoom={7}
-      style={{ width: '100%', height: '100%' }}
-      zoomControl={false}
-    >
-      <ZoomControl position="topright" />
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        subdomains="abcd"
-        maxZoom={19}
-      />
-      <MapController vessels={vessels} selectedMmsi={selectedMmsi} />
-      <MapContent
-        vessels={vessels}
-        selectedMmsi={selectedMmsi}
-        track={track}
-        onSelect={onSelect}
-      />
-    </MapContainer>
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <MapContainer
+        center={[45.0, 14.5]}
+        zoom={7}
+        style={{ width: '100%', height: '100%' }}
+        zoomControl={false}
+      >
+        <ZoomControl position="topright" />
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          subdomains="abcd"
+          maxZoom={19}
+        />
+        <MapController vessels={vessels} selectedMmsi={selectedMmsi} />
+        <MapContent
+          vessels={vessels}
+          selectedMmsi={selectedMmsi}
+          track={track}
+          onSelect={onSelect}
+          showHeatmap={showHeatmap}
+        />
+      </MapContainer>
+
+      <button
+        onClick={() => setShowHeatmap(h => !h)}
+        title={showHeatmap ? 'Isključi heatmap' : 'Uključi heatmap gustoće prometa'}
+        style={{
+          position: 'absolute',
+          bottom: 12,
+          left: 12,
+          zIndex: 1000,
+          background: showHeatmap ? '#ef4444' : 'var(--bg-surface)',
+          border: `1px solid ${showHeatmap ? '#ef4444' : 'var(--border-color)'}`,
+          color: showHeatmap ? '#fff' : 'var(--text-muted)',
+          borderRadius: 8,
+          padding: '7px 12px',
+          fontSize: 12,
+          fontWeight: 600,
+          cursor: 'pointer',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          transition: 'background 0.2s, color 0.2s, border-color 0.2s',
+          letterSpacing: '0.03em',
+        }}
+      >
+        <span style={{ fontSize: 14 }}>🔥</span>
+        Heatmap
+      </button>
+    </div>
   );
 }
