@@ -11,8 +11,8 @@ interface Props {
 
 function Row({ label, value }: { label: string; value: string | number | null | undefined }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid #334155' }}>
-      <span style={{ color: '#94a3b8', fontSize: 12 }}>{label}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid var(--border-color)' }}>
+      <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{label}</span>
       <span style={{ fontSize: 12, fontWeight: 500 }}>{value ?? '—'}</span>
     </div>
   );
@@ -58,15 +58,15 @@ export function VesselPanel({ mmsi, livePosition, onClose, isMobile }: Props) {
   return (
     <div style={{
       ...(isMobile ? mobileStyle : desktopStyle),
-      background: '#1e293b',
-      color: '#e2e8f0',
+      background: 'var(--bg-surface)',
+      color: 'var(--text-primary)',
       boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
       zIndex: 1000,
       overflow: isMobile ? 'auto' : 'hidden',
     }}>
       <div style={{
         padding: '12px 16px',
-        background: '#0f172a',
+        background: 'var(--bg-base)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -78,12 +78,12 @@ export function VesselPanel({ mmsi, livePosition, onClose, isMobile }: Props) {
           <div style={{ fontWeight: 700, fontSize: 14 }}>
             {vessel?.name ?? live?.name ?? `MMSI ${mmsi}`}
           </div>
-          <div style={{ fontSize: 11, color: '#94a3b8' }}>MMSI: {mmsi}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>MMSI: {mmsi}</div>
         </div>
         <button
           onClick={onClose}
           style={{
-            background: 'none', border: 'none', color: '#94a3b8',
+            background: 'none', border: 'none', color: 'var(--text-muted)',
             cursor: 'pointer', fontSize: 18, lineHeight: 1,
           }}
         >×</button>
@@ -91,7 +91,7 @@ export function VesselPanel({ mmsi, livePosition, onClose, isMobile }: Props) {
 
       <div style={{ padding: '12px 16px' }}>
         {loading ? (
-          <div style={{ color: '#64748b', fontSize: 13 }}>Učitavanje...</div>
+          <div style={{ color: 'var(--text-dim)', fontSize: 13 }}>Učitavanje...</div>
         ) : (
           <>
             <div style={{ fontSize: 11, fontWeight: 600, color: '#60a5fa', marginBottom: 6, textTransform: 'uppercase' }}>
@@ -121,7 +121,7 @@ export function VesselPanel({ mmsi, livePosition, onClose, isMobile }: Props) {
             <div style={{ fontSize: 11, fontWeight: 600, color: '#f59e0b', marginTop: 12, marginBottom: 6, textTransform: 'uppercase' }}>
               Trag (zadnjih 24h)
             </div>
-            <div style={{ color: '#94a3b8', fontSize: 12 }}>
+            <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>
               {track.length} pozicija zabilježeno
             </div>
           </>

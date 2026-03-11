@@ -5,14 +5,40 @@
   touch-action: manipulation;
 }
 
+:root {
+  --bg-base: #0f172a;
+  --bg-surface: #1e293b;
+  --bg-surface-hover: #273548;
+  --border-color: #334155;
+  --text-primary: #e2e8f0;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  --text-dimmer: #475569;
+  --skeleton-from: #1e293b;
+  --skeleton-to: #273548;
+}
+
+[data-theme="light"] {
+  --bg-base: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f1f5f9;
+  --border-color: #cbd5e1;
+  --text-primary: #0f172a;
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
+  --text-dimmer: #94a3b8;
+  --skeleton-from: #e2e8f0;
+  --skeleton-to: #f1f5f9;
+}
+
 html {
   height: 100dvh;
-  background: #0f172a;
+  background: var(--bg-base);
 }
 
 body, #root {
   height: 100%;
-  background: #0f172a;
+  background: var(--bg-base);
 }
 
 @keyframes pulseRing {
@@ -26,7 +52,7 @@ body, #root {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #1e293b 25%, #273548 50%, #1e293b 75%);
+  background: linear-gradient(90deg, var(--skeleton-from) 25%, var(--skeleton-to) 50%, var(--skeleton-from) 75%);
   background-size: 800px 100%;
   animation: shimmer 1.4s infinite linear;
   border-radius: 4px;
@@ -44,9 +70,9 @@ body, #root {
 
 /* Rich vessel tooltip stilovi */
 .leaflet-tooltip.vessel-tooltip {
-  background: #1e293b !important;
-  border: 1px solid #334155 !important;
-  color: #e2e8f0 !important;
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-primary) !important;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55) !important;
   padding: 8px 10px !important;
   border-radius: 8px !important;
@@ -55,5 +81,5 @@ body, #root {
 }
 
 .leaflet-tooltip.vessel-tooltip::before {
-  border-top-color: #334155 !important;
+  border-top-color: var(--border-color) !important;
 }
