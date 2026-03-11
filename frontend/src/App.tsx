@@ -15,15 +15,20 @@ export default function App() {
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const check = () => {
-      const mobile = window.innerWidth <= 768;
-      setIsMobile(mobile);
-      if (!mobile) setSidebarOpen(true);
-      else setSidebarOpen(false);
+    // Inicijalni check — zatvori sidebar na mobileu
+    const mobile = window.innerWidth <= 768;
+    setIsMobile(mobile);
+    if (mobile) setSidebarOpen(false);
+
+    const handleResize = () => {
+      const m = window.innerWidth <= 768;
+      setIsMobile(m);
+      // Na desktopu uvijek otvori sidebar; na mobileu NE diramo sidebarOpen
+      // (inače otvaranje tipkovnice trigerira resize i zatvori meni)
+      if (!m) setSidebarOpen(true);
     };
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // Inicijalni load
@@ -119,15 +124,15 @@ export default function App() {
       {/* Map area */}
       <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
 
-        {/* Hamburger button — only on mobile */}
+        {/* Hamburger button — only on mobile, position:fixed da Leaflet ne može pokriti */}
         {isMobile && (
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             style={{
-              position: 'absolute',
+              position: 'fixed',
               top: 12,
               left: 12,
-              zIndex: 1000,
+              zIndex: 9999,
               background: '#1e293b',
               border: 'none',
               color: '#e2e8f0',
@@ -137,6 +142,7 @@ export default function App() {
               cursor: 'pointer',
               boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
               lineHeight: 1,
+              WebkitTapHighlightColor: 'transparent',
             }}
           >
             ☰
