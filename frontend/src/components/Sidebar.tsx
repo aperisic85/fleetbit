@@ -12,8 +12,8 @@ interface Props {
 }
 
 function speedLabel(v: VesselLive): string {
-  if (v.nav_status === 1) return '⚓ Sidreno';
-  if (v.nav_status === 5) return '🔗 Privezano';
+  if (v.nav_status === 1) return 'Sidreno';
+  if (v.nav_status === 5) return 'Privezano';
   const sog = v.sog ?? 0;
   if (sog < 0.5) return 'Stacionarno';
   return `${sog.toFixed(1)} kn`;
@@ -26,6 +26,21 @@ function speedColor(v: VesselLive): string {
   if (sog < 5)    return '#3b82f6';
   if (sog < 12)   return '#10b981';
   return '#f59e0b';
+}
+
+function statusIcon(v: VesselLive): string {
+  if (v.nav_status === 1) return '⚓';
+  if (v.nav_status === 5) return '🔗';
+  const sog = v.sog ?? 0;
+  if (sog < 0.5) return '●';
+  return '▶';
+}
+
+function speedBarWidth(v: VesselLive): number {
+  if (v.nav_status === 1 || v.nav_status === 5) return 0;
+  const sog = v.sog ?? 0;
+  // Max ~25 kn → 100%
+  return Math.min(100, (sog / 25) * 100);
 }
 
 const FILTERS: { key: FilterStatus; label: string }[] = [
@@ -119,49 +134,77 @@ export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelec
       </div>
 
       {/* Vessel list */}
-      <div style={{ overflowY: 'auto', flex: 1 }}>
-        {filtered.map((v) => (
-          <div
-            key={v.mmsi}
-            onClick={() => onSelect(v.mmsi)}
-            style={{
-              padding: '10px 16px',
-              cursor: 'pointer',
-              borderBottom: '1px solid #1e293b',
-              background: selectedMmsi === v.mmsi ? '#1d4ed8' : 'transparent',
-              transition: 'background 0.15s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-            }}
-            onMouseEnter={(e) => {
-              if (selectedMmsi !== v.mmsi)
-                (e.currentTarget as HTMLDivElement).style.background = '#334155';
-            }}
-            onMouseLeave={(e) => {
-              if (selectedMmsi !== v.mmsi)
-                (e.currentTarget as HTMLDivElement).style.background = 'transparent';
-            }}
-          >
-            {/* Speed color dot */}
-            <div style={{
-              width: 8, height: 8,
-              borderRadius: '50%',
-              background: speedColor(v),
-              flexShrink: 0,
-            }} />
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {v.name ?? <span style={{ color: '#94a3b8' }}>Nepoznat</span>}
+      <div style={{ overflowY: 'auto', flex: 1, padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {filtered.map((v) => {
+          const color = speedColor(v);
+          const isSelected = selectedMmsi === v.mmsi;
+          const barWidth = speedBarWidth(v);
+          return (
+            <div
+              key={v.mmsi}
+              onClick={() => onSelect(v.mmsi)}
+              style={{
+                padding: '9px 12px',
+                cursor: 'pointer',
+                borderRadius: 8,
+                border: `1px solid ${isSelected ? color : '#334155'}`,
+                borderLeft: `3px solid ${color}`,
+                background: isSelected ? `${color}18` : '#0f172a',
+                transition: 'background 0.15s, border-color 0.15s, box-shadow 0.15s',
+                boxShadow: isSelected ? `0 0 0 1px ${color}40, 0 2px 8px #0008` : '0 1px 3px #0004',
+              }}
+              onMouseEnter={(e) => {
+                if (!isSelected) {
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.background = '#1e293b';
+                  el.style.boxShadow = `0 0 0 1px ${color}30, 0 2px 8px #0006`;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isSelected) {
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.background = '#0f172a';
+                  el.style.boxShadow = '0 1px 3px #0004';
+                }
+              }}
+            >
+              {/* Top row: icon + name + status badge */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: barWidth > 0 ? 6 : 4 }}>
+                <span style={{ fontSize: 11, flexShrink: 0, color }}>{statusIcon(v)}</span>
+                <div style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, color: isSelected ? '#fff' : '#e2e8f0' }}>
+                  {v.name ?? <span style={{ color: '#64748b', fontStyle: 'italic' }}>Nepoznat</span>}
+                </div>
+                <span style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color,
+                  background: `${color}20`,
+                  border: `1px solid ${color}40`,
+                  borderRadius: 20,
+                  padding: '1px 7px',
+                  flexShrink: 0,
+                  letterSpacing: '0.02em',
+                }}>
+                  {speedLabel(v)}
+                </span>
               </div>
-              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
-                {speedLabel(v)} · {v.mmsi}
+
+              {/* Speed bar (samo za brodove u plovidbi) */}
+              {barWidth > 0 && (
+                <div style={{ height: 2, background: '#1e293b', borderRadius: 2, overflow: 'hidden', marginBottom: 4 }}>
+                  <div style={{ height: '100%', width: `${barWidth}%`, background: color, borderRadius: 2, transition: 'width 0.4s ease' }} />
+                </div>
+              )}
+
+              {/* Bottom row: MMSI */}
+              <div style={{ fontSize: 10, color: '#475569', letterSpacing: '0.03em' }}>
+                MMSI {v.mmsi}
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {filtered.length === 0 && (
-          <div style={{ padding: 16, color: '#64748b', fontSize: 13 }}>
+          <div style={{ padding: 16, color: '#64748b', fontSize: 13, textAlign: 'center' }}>
             {search ? 'Nema rezultata' : 'Nema aktivnih brodova'}
           </div>
         )}
