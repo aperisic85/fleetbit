@@ -47,7 +47,7 @@ export function StatsWidget({ vessels }: Props) {
   return (
     <div style={{
       position: 'absolute',
-      bottom: 44,
+      bottom: 'calc(44px + env(safe-area-inset-bottom, 0px))',
       right: 12,
       zIndex: 1000,
       background: 'rgba(15,23,42,0.93)',
