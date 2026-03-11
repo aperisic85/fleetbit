@@ -45,6 +45,7 @@ export function VesselPanel({ mmsi, livePosition, onClose, isMobile }: Props) {
     borderRadius: '12px 12px 0 0',
     maxHeight: '55vh',
     overflowY: 'auto',
+    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
   };
 
   const desktopStyle: React.CSSProperties = {
