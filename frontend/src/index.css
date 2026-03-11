@@ -2,6 +2,8 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  /* Onemogući double-tap browser zoom, ali zadrži pinch-to-zoom */
+  touch-action: manipulation;
 }
 
 html, body, #root {
