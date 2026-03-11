@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { MapContainer, TileLayer, Polyline, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, ZoomControl, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { VesselLive, TrackPoint } from '../types';
 import { VesselMarker } from './VesselMarker';
@@ -35,7 +35,9 @@ export function LiveMap({ vessels, selectedMmsi, track, onSelect }: Props) {
       center={[45.0, 14.5]}
       zoom={7}
       style={{ width: '100%', height: '100%' }}
+      zoomControl={false}
     >
+      <ZoomControl position="topright" />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
