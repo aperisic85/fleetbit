@@ -15,6 +15,10 @@ function MapController({ vessels, selectedMmsi }: { vessels: VesselLive[]; selec
   const map = useMap();
 
   useEffect(() => {
+    setTimeout(() => map.invalidateSize(), 100);
+  }, []);
+
+  useEffect(() => {
     if (selectedMmsi == null) return;
     const vessel = vessels.find((v) => v.mmsi === selectedMmsi);
     if (vessel?.lat != null && vessel?.lon != null) {
