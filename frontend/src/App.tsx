@@ -28,9 +28,17 @@ export default function App() {
     function connect() {
       setWsStatus('connecting');
       const ws = createWebSocket((data) => {
-        const pos = data as VesselLive;
-        if (pos.mmsi == null) return;
-        setVessels((prev) => new Map(prev).set(pos.mmsi, { ...prev.get(pos.mmsi), ...pos }));
+        const msg = data as { type: string; vessels?: VesselLive[]; position?: VesselLive };
+        if (msg.type === 'snapshot' && Array.isArray(msg.vessels)) {
+          setVessels((prev) => {
+            const map = new Map(prev);
+            for (const v of msg.vessels!) map.set(v.mmsi, v);
+            return map;
+          });
+        } else if (msg.type === 'update' && msg.position?.mmsi != null) {
+          const pos = msg.position;
+          setVessels((prev) => new Map(prev).set(pos.mmsi, { ...prev.get(pos.mmsi), ...pos }));
+        }
       });
       ws.onopen = () => setWsStatus('connected');
       ws.onclose = () => {
