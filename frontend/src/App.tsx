@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { VesselLive, TrackPoint } from './types';
 import { fetchLiveVessels, fetchTrack, createWebSocket } from './api';
-import { Sidebar } from './components/Sidebar';
+import { Sidebar, type FilterStatus } from './components/Sidebar';
 import { LiveMap } from './components/LiveMap';
 import { VesselPanel } from './components/VesselPanel';
+import { StatsWidget } from './components/StatsWidget';
 
 export default function App() {
   const [vessels, setVessels] = useState<Map<number, VesselLive>>(new Map());
@@ -12,6 +13,7 @@ export default function App() {
   const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [filter, setFilter] = useState<FilterStatus>('all');
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -23,8 +25,6 @@ export default function App() {
     const handleResize = () => {
       const m = window.innerWidth <= 768;
       setIsMobile(m);
-      // Na desktopu uvijek otvori sidebar; na mobileu NE diramo sidebarOpen
-      // (inače otvaranje tipkovnice trigerira resize i zatvori meni)
       if (!m) setSidebarOpen(true);
     };
     window.addEventListener('resize', handleResize);
@@ -79,7 +79,18 @@ export default function App() {
       .catch(console.error);
   }, [selectedMmsi]);
 
-  const vesselList = Array.from(vessels.values()).filter((v) => v.lat != null && v.lon != null);
+  const vesselList = useMemo(
+    () => Array.from(vessels.values()).filter((v) => v.lat != null && v.lon != null),
+    [vessels]
+  );
+
+  const filteredVessels = useMemo(() => {
+    if (filter === 'underway')
+      return vesselList.filter(v => v.nav_status !== 1 && v.nav_status !== 5 && (v.sog ?? 0) > 0.5);
+    if (filter === 'anchored')
+      return vesselList.filter(v => v.nav_status === 1 || v.nav_status === 5 || (v.sog ?? 0) <= 0.5);
+    return vesselList;
+  }, [vesselList, filter]);
 
   const handleSelect = (mmsi: number) => {
     setSelectedMmsi(mmsi);
@@ -115,8 +126,10 @@ export default function App() {
         flexShrink: 0,
       }}>
         <Sidebar
-          vessels={vesselList}
+          vessels={filteredVessels}
           selectedMmsi={selectedMmsi}
+          filter={filter}
+          onFilterChange={setFilter}
           onSelect={handleSelect}
         />
       </div>
@@ -150,11 +163,14 @@ export default function App() {
         )}
 
         <LiveMap
-          vessels={vesselList}
+          vessels={filteredVessels}
           selectedMmsi={selectedMmsi}
           track={track}
           onSelect={handleSelect}
         />
+
+        {/* Stats widget */}
+        <StatsWidget vessels={vesselList} />
 
         {/* WS status badge */}
         <div style={{
