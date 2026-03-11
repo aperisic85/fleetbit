@@ -98,7 +98,7 @@ export default function App() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', fontFamily: 'system-ui, sans-serif', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100%', fontFamily: 'system-ui, sans-serif', position: 'relative', overflow: 'hidden' }}>
 
       {/* Mobile backdrop */}
       {isMobile && sidebarOpen && (
@@ -175,7 +175,7 @@ export default function App() {
         {/* WS status badge */}
         <div style={{
           position: 'absolute',
-          bottom: 12,
+          bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
           left: 12,
           zIndex: 1000,
           background: '#0f172a',
