@@ -11,6 +11,7 @@ export default function App() {
   const [selectedMmsi, setSelectedMmsi] = useState<number | null>(null);
   const [track, setTrack] = useState<TrackPoint[]>([]);
   const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+  const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [filter, setFilter] = useState<FilterStatus>('all');
@@ -39,7 +40,8 @@ export default function App() {
         for (const v of data.vessels ?? []) map.set(v.mmsi, v);
         setVessels(map);
       })
-      .catch(console.error);
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
 
   // WebSocket — real-time update
@@ -131,6 +133,7 @@ export default function App() {
           filter={filter}
           onFilterChange={setFilter}
           onSelect={handleSelect}
+          loading={loading}
         />
       </div>
 
@@ -173,19 +176,43 @@ export default function App() {
         <StatsWidget vessels={vesselList} />
 
         {/* WS status badge */}
-        <div style={{
-          position: 'absolute',
-          bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
-          left: 12,
-          zIndex: 1000,
-          background: '#0f172a',
-          borderRadius: 6,
-          padding: '4px 10px',
-          fontSize: 11,
-          color: wsStatus === 'connected' ? '#34d399' : wsStatus === 'connecting' ? '#f59e0b' : '#f87171',
-        }}>
-          ● {wsStatus === 'connected' ? 'Live' : wsStatus === 'connecting' ? 'Spajanje...' : 'Disconnected'}
-        </div>
+        {(() => {
+          const cfg = wsStatus === 'connected'
+            ? { color: '#34d399', bg: '#34d39918', border: '#34d39940', label: 'Live', pulse: true }
+            : wsStatus === 'connecting'
+            ? { color: '#f59e0b', bg: '#f59e0b18', border: '#f59e0b40', label: 'Spajanje...', pulse: true }
+            : { color: '#f87171', bg: '#f8717118', border: '#f8717140', label: 'Offline', pulse: false };
+          return (
+            <div style={{
+              position: 'absolute',
+              bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+              left: 12,
+              zIndex: 1000,
+              background: cfg.bg,
+              border: `1px solid ${cfg.border}`,
+              borderRadius: 20,
+              padding: '4px 10px 4px 8px',
+              fontSize: 11,
+              fontWeight: 600,
+              color: cfg.color,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              backdropFilter: 'blur(4px)',
+              letterSpacing: '0.03em',
+            }}>
+              <span style={{
+                display: 'inline-block',
+                width: 6, height: 6,
+                borderRadius: '50%',
+                background: cfg.color,
+                flexShrink: 0,
+                animation: cfg.pulse ? 'wsPulse 1.4s ease-in-out infinite' : 'none',
+              }} />
+              {cfg.label}
+            </div>
+          );
+        })()}
 
         {/* Detalj odabranog broda */}
         {selectedMmsi != null && (
