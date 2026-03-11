@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { VesselLive, TrackPoint } from './types';
 import { fetchLiveVessels, fetchTrack, createWebSocket } from './api';
 import { Sidebar, type FilterStatus } from './components/Sidebar';
 import { LiveMap } from './components/LiveMap';
 import { VesselPanel } from './components/VesselPanel';
 import { StatsWidget } from './components/StatsWidget';
+import { ToastContainer, type ToastMessage } from './components/Toast';
+
+let toastIdCounter = 1;
 
 export default function App() {
   const [vessels, setVessels] = useState<Map<number, VesselLive>>(new Map());
@@ -15,10 +18,22 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [filter, setFilter] = useState<FilterStatus>('all');
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
+  const prevWsStatus = useRef<string>('connecting');
+  // Rate-limit vessel update toasts — show max 1 per 4s
+  const lastVesselToastRef = useRef<number>(0);
+
+  const addToast = useCallback((text: string, type: ToastMessage['type'] = 'info') => {
+    const id = toastIdCounter++;
+    setToasts((prev) => [...prev.slice(-4), { id, text, type }]);
+  }, []);
+
+  const removeToast = useCallback((id: number) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
 
   useEffect(() => {
-    // Inicijalni check — zatvori sidebar na mobileu
     const mobile = window.innerWidth <= 768;
     setIsMobile(mobile);
     if (mobile) setSidebarOpen(false);
@@ -32,7 +47,6 @@ export default function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Inicijalni load
   useEffect(() => {
     fetchLiveVessels()
       .then((data) => {
@@ -44,7 +58,6 @@ export default function App() {
       .finally(() => setLoading(false));
   }, []);
 
-  // WebSocket — real-time update
   useEffect(() => {
     function connect() {
       setWsStatus('connecting');
@@ -58,10 +71,27 @@ export default function App() {
           });
         } else if (msg.type === 'update' && msg.position?.mmsi != null) {
           const pos = msg.position;
-          setVessels((prev) => new Map(prev).set(pos.mmsi, { ...prev.get(pos.mmsi), ...pos }));
+          setVessels((prev) => {
+            const updated = new Map(prev).set(pos.mmsi, { ...prev.get(pos.mmsi), ...pos });
+            return updated;
+          });
+          // Toast za odabrani brod
+          setSelectedMmsi((sel) => {
+            if (sel === pos.mmsi) {
+              const now = Date.now();
+              if (now - lastVesselToastRef.current > 4000) {
+                lastVesselToastRef.current = now;
+                const name = pos.name ?? `MMSI ${pos.mmsi}`;
+                addToast(`${name} ažuriran`, 'info');
+              }
+            }
+            return sel;
+          });
         }
       });
-      ws.onopen = () => setWsStatus('connected');
+      ws.onopen = () => {
+        setWsStatus('connected');
+      };
       ws.onclose = () => {
         setWsStatus('disconnected');
         setTimeout(connect, 3000);
@@ -71,9 +101,20 @@ export default function App() {
     }
     connect();
     return () => wsRef.current?.close();
-  }, []);
+  }, [addToast]);
 
-  // Učitaj trag kad se odabere brod
+  // Toast za WS status promjene
+  useEffect(() => {
+    const prev = prevWsStatus.current;
+    if (prev === wsStatus) return;
+    prevWsStatus.current = wsStatus;
+    if (wsStatus === 'connected' && prev !== 'connecting') {
+      addToast('Konekcija uspostavljena', 'success');
+    } else if (wsStatus === 'disconnected') {
+      addToast('Konekcija prekinuta', 'error');
+    }
+  }, [wsStatus, addToast]);
+
   useEffect(() => {
     if (selectedMmsi == null) { setTrack([]); return; }
     fetchTrack(selectedMmsi, undefined, undefined, 2000)
@@ -99,6 +140,12 @@ export default function App() {
     if (isMobile) setSidebarOpen(false);
   };
 
+  const wsCfg = wsStatus === 'connected'
+    ? { color: '#34d399', bg: '#34d39918', border: '#34d39940', label: 'Live', pulse: true }
+    : wsStatus === 'connecting'
+    ? { color: '#f59e0b', bg: '#f59e0b18', border: '#f59e0b40', label: 'Spajanje...', pulse: true }
+    : { color: '#f87171', bg: '#f8717118', border: '#f8717140', label: 'Offline', pulse: false };
+
   return (
     <div style={{ display: 'flex', height: '100%', fontFamily: 'system-ui, sans-serif', position: 'relative', overflow: 'hidden' }}>
 
@@ -115,7 +162,7 @@ export default function App() {
         />
       )}
 
-      {/* Sidebar — overlay on mobile, normal on desktop */}
+      {/* Sidebar */}
       <div style={{
         ...(isMobile ? {
           position: 'absolute',
@@ -140,7 +187,6 @@ export default function App() {
       {/* Map area */}
       <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
 
-        {/* Hamburger button — only on mobile, position:fixed da Leaflet ne može pokriti */}
         {isMobile && (
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -172,49 +218,40 @@ export default function App() {
           onSelect={handleSelect}
         />
 
-        {/* Stats widget */}
         <StatsWidget vessels={vesselList} />
 
-        {/* WS status badge */}
-        {(() => {
-          const cfg = wsStatus === 'connected'
-            ? { color: '#34d399', bg: '#34d39918', border: '#34d39940', label: 'Live', pulse: true }
-            : wsStatus === 'connecting'
-            ? { color: '#f59e0b', bg: '#f59e0b18', border: '#f59e0b40', label: 'Spajanje...', pulse: true }
-            : { color: '#f87171', bg: '#f8717118', border: '#f8717140', label: 'Offline', pulse: false };
-          return (
-            <div style={{
-              position: 'absolute',
-              bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
-              left: 12,
-              zIndex: 1000,
-              background: cfg.bg,
-              border: `1px solid ${cfg.border}`,
-              borderRadius: 20,
-              padding: '4px 10px 4px 8px',
-              fontSize: 11,
-              fontWeight: 600,
-              color: cfg.color,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              backdropFilter: 'blur(4px)',
-              letterSpacing: '0.03em',
-            }}>
-              <span style={{
-                display: 'inline-block',
-                width: 6, height: 6,
-                borderRadius: '50%',
-                background: cfg.color,
-                flexShrink: 0,
-                animation: cfg.pulse ? 'wsPulse 1.4s ease-in-out infinite' : 'none',
-              }} />
-              {cfg.label}
-            </div>
-          );
-        })()}
+        {/* WS status badge — animirani pulsing dot */}
+        <div style={{
+          position: 'absolute',
+          bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+          left: 12,
+          zIndex: 1000,
+          background: wsCfg.bg,
+          border: `1px solid ${wsCfg.border}`,
+          borderRadius: 20,
+          padding: '5px 10px 5px 8px',
+          fontSize: 11,
+          fontWeight: 600,
+          color: wsCfg.color,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 7,
+          backdropFilter: 'blur(4px)',
+          letterSpacing: '0.03em',
+          transition: 'color 0.3s, background 0.3s, border-color 0.3s',
+        }}>
+          <span style={{
+            display: 'inline-block',
+            width: 7, height: 7,
+            borderRadius: '50%',
+            background: wsCfg.color,
+            flexShrink: 0,
+            transition: 'background 0.3s',
+            animation: wsCfg.pulse ? 'wsPulse 1.4s ease-in-out infinite' : 'none',
+          }} />
+          {wsCfg.label}
+        </div>
 
-        {/* Detalj odabranog broda */}
         {selectedMmsi != null && (
           <VesselPanel
             mmsi={selectedMmsi}
@@ -224,6 +261,9 @@ export default function App() {
           />
         )}
       </div>
+
+      {/* Toast notifikacije */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   );
 }
