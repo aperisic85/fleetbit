@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { VesselLive } from '../types';
 
 export type FilterStatus = 'all' | 'underway' | 'anchored';
@@ -60,18 +60,50 @@ function statusIcon(v: VesselLive): string {
 function speedBarWidth(v: VesselLive): number {
   if (v.nav_status === 1 || v.nav_status === 5) return 0;
   const sog = v.sog ?? 0;
-  // Max ~25 kn → 100%
   return Math.min(100, (sog / 25) * 100);
 }
 
 const FILTERS: { key: FilterStatus; label: string }[] = [
-  { key: 'all',      label: 'Svi'         },
-  { key: 'underway', label: 'U plovidbi'  },
-  { key: 'anchored', label: 'Sidreni'     },
+  { key: 'all',      label: 'Svi'        },
+  { key: 'underway', label: 'U plovidbi' },
+  { key: 'anchored', label: 'Sidreni'    },
 ];
+
+// Lupa SVG ikona
+function SearchIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
+
+// X clear ikona
+function ClearIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
 
 export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelect, loading = false }: Props) {
   const [search, setSearch] = useState('');
+  // Animated filter slider
+  const filterBarRef = useRef<HTMLDivElement>(null);
+  const [sliderLeft, setSliderLeft] = useState(0);
+  const [sliderWidth, setSliderWidth] = useState(0);
+
+  useEffect(() => {
+    const bar = filterBarRef.current;
+    if (!bar) return;
+    const activeEl = bar.querySelector(`[data-filterkey="${filter}"]`) as HTMLElement | null;
+    if (!activeEl) return;
+    setSliderLeft(activeEl.offsetLeft);
+    setSliderWidth(activeEl.offsetWidth);
+  }, [filter]);
 
   const filtered = [...vessels]
     .filter((v) => {
@@ -108,54 +140,122 @@ export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelec
         </div>
       </div>
 
-      {/* Search */}
+      {/* Search s ikonom i clear buttonom */}
       <div style={{ padding: '10px 12px', borderBottom: '1px solid #334155' }}>
-        <input
-          type="text"
-          placeholder="Pretraži brodove..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{
-            width: '100%',
-            background: '#0f172a',
-            border: '1px solid #334155',
-            borderRadius: 6,
-            color: '#e2e8f0',
-            padding: '7px 10px',
-            fontSize: 13,
-            outline: 'none',
-            boxSizing: 'border-box',
-          }}
-        />
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          {/* Lupa ikona */}
+          <span style={{
+            position: 'absolute',
+            left: 9,
+            color: '#64748b',
+            display: 'flex',
+            alignItems: 'center',
+            pointerEvents: 'none',
+          }}>
+            <SearchIcon />
+          </span>
+
+          <input
+            type="text"
+            placeholder="Pretraži brodove..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              background: '#0f172a',
+              border: '1px solid #334155',
+              borderRadius: 6,
+              color: '#e2e8f0',
+              padding: '7px 30px 7px 30px',
+              fontSize: 13,
+              outline: 'none',
+              boxSizing: 'border-box',
+              transition: 'border-color 0.15s',
+            }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = '#3b82f6'; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = '#334155'; }}
+          />
+
+          {/* Clear button — prikaži samo kad ima teksta */}
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              style={{
+                position: 'absolute',
+                right: 7,
+                background: 'none',
+                border: 'none',
+                color: '#64748b',
+                cursor: 'pointer',
+                padding: 3,
+                display: 'flex',
+                alignItems: 'center',
+                borderRadius: 4,
+                transition: 'color 0.15s',
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#e2e8f0'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#64748b'; }}
+              title="Obriši pretragu"
+            >
+              <ClearIcon />
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Filter pills */}
-      <div style={{
-        display: 'flex',
-        gap: 6,
-        padding: '8px 12px',
-        borderBottom: '1px solid #334155',
-      }}>
-        {FILTERS.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => onFilterChange(key)}
-            style={{
-              flex: 1,
-              padding: '5px 0',
-              fontSize: 11,
-              fontWeight: 600,
-              borderRadius: 20,
-              border: 'none',
-              cursor: 'pointer',
-              background: filter === key ? '#2563eb' : '#0f172a',
-              color: filter === key ? '#fff' : '#94a3b8',
-              transition: 'background 0.15s, color 0.15s',
-            }}
-          >
-            {label}
-          </button>
-        ))}
+      {/* Filter pill tabs s animiranim sliderom */}
+      <div style={{ padding: '8px 12px', borderBottom: '1px solid #334155' }}>
+        <div
+          ref={filterBarRef}
+          style={{
+            position: 'relative',
+            display: 'flex',
+            gap: 2,
+            background: '#0f172a',
+            borderRadius: 22,
+            padding: 3,
+          }}
+        >
+          {/* Animirani slider u pozadini */}
+          {sliderWidth > 0 && (
+            <div style={{
+              position: 'absolute',
+              top: 3,
+              left: sliderLeft + 3,
+              width: sliderWidth,
+              height: 'calc(100% - 6px)',
+              background: '#2563eb',
+              borderRadius: 18,
+              transition: 'left 0.22s cubic-bezier(0.4, 0, 0.2, 1), width 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
+              pointerEvents: 'none',
+              zIndex: 0,
+            }} />
+          )}
+
+          {FILTERS.map(({ key, label }) => (
+            <button
+              key={key}
+              data-filterkey={key}
+              onClick={() => onFilterChange(key)}
+              style={{
+                flex: 1,
+                padding: '5px 0',
+                fontSize: 11,
+                fontWeight: 600,
+                borderRadius: 18,
+                border: 'none',
+                cursor: 'pointer',
+                background: 'transparent',
+                color: filter === key ? '#fff' : '#64748b',
+                transition: 'color 0.2s',
+                position: 'relative',
+                zIndex: 1,
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Vessel list */}
@@ -194,7 +294,6 @@ export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelec
                 }
               }}
             >
-              {/* Top row: icon + name + status badge */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: barWidth > 0 ? 6 : 4 }}>
                 <span style={{ fontSize: 11, flexShrink: 0, color }}>{statusIcon(v)}</span>
                 <div style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, color: isSelected ? '#fff' : '#e2e8f0' }}>
@@ -215,14 +314,12 @@ export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelec
                 </span>
               </div>
 
-              {/* Speed bar (samo za brodove u plovidbi) */}
               {barWidth > 0 && (
                 <div style={{ height: 2, background: '#1e293b', borderRadius: 2, overflow: 'hidden', marginBottom: 4 }}>
                   <div style={{ height: '100%', width: `${barWidth}%`, background: color, borderRadius: 2, transition: 'width 0.4s ease' }} />
                 </div>
               )}
 
-              {/* Bottom row: MMSI */}
               <div style={{ fontSize: 10, color: '#475569', letterSpacing: '0.03em' }}>
                 MMSI {v.mmsi}
               </div>

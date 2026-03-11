@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Polyline, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
+import type L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { VesselLive, TrackPoint } from '../types';
 import { VesselMarker } from './VesselMarker';
@@ -12,7 +13,7 @@ interface Props {
   onSelect: (mmsi: number) => void;
 }
 
-const CLUSTER_THRESHOLD = 10; // zoom < 10 → klasteriranje
+const CLUSTER_THRESHOLD = 10;
 
 function gridSize(zoom: number): number {
   if (zoom < 5)  return 8;
@@ -38,7 +39,6 @@ function buildClusters(vessels: VesselLive[], zoom: number, selectedMmsi: number
 
   for (const v of vessels) {
     if (v.lat == null || v.lon == null) continue;
-    // Odabrani brod uvijek ostaje individualan
     if (v.mmsi === selectedMmsi) continue;
     const cellLat = Math.round(v.lat / gs) * gs;
     const cellLon = Math.round(v.lon / gs) * gs;
@@ -60,7 +60,6 @@ function buildClusters(vessels: VesselLive[], zoom: number, selectedMmsi: number
     }
   }
 
-  // Uvijek prikaži odabrani brod individualno
   if (selectedMmsi != null) {
     const sel = vessels.find((v) => v.mmsi === selectedMmsi);
     if (sel) individual.push(sel);
@@ -69,7 +68,52 @@ function buildClusters(vessels: VesselLive[], zoom: number, selectedMmsi: number
   return { individual, clusters };
 }
 
-// --- Child komponente (moraju biti unutar MapContainer konteksta) ---
+// Animated Polyline — crta se dash-offset animacijom kad track promijeni
+function AnimatedTrack({ positions }: { positions: [number, number][] }) {
+  const polyRef = useRef<L.Polyline | null>(null);
+  const prevPositionsRef = useRef<[number, number][]>([]);
+
+  useEffect(() => {
+    if (positions.length < 2) return;
+    // Provjeri je li track zaista promijenjen
+    const prev = prevPositionsRef.current;
+    const changed =
+      prev.length !== positions.length ||
+      (positions[0]?.[0] !== prev[0]?.[0] || positions[0]?.[1] !== prev[0]?.[1]);
+
+    prevPositionsRef.current = positions;
+    if (!changed && prev.length > 0) return;
+
+    const poly = polyRef.current;
+    if (!poly) return;
+
+    // Kratka odgoda da Leaflet renderira SVG element
+    requestAnimationFrame(() => {
+      const el = poly.getElement() as SVGPathElement | null;
+      if (!el) return;
+      const length = el.getTotalLength ? el.getTotalLength() : 2000;
+      el.style.transition = 'none';
+      el.style.strokeDasharray = `${length}`;
+      el.style.strokeDashoffset = `${length}`;
+      // Force reflow
+      void el.getBoundingClientRect();
+      el.style.transition = 'stroke-dashoffset 1.8s cubic-bezier(0.4, 0, 0.2, 1)';
+      el.style.strokeDashoffset = '0';
+    });
+  }, [positions]);
+
+  if (positions.length < 2) return null;
+
+  return (
+    <Polyline
+      ref={polyRef}
+      positions={positions}
+      color="#f59e0b"
+      weight={2}
+      opacity={0.75}
+    />
+  );
+}
 
 function MapController({ vessels, selectedMmsi }: { vessels: VesselLive[]; selectedMmsi: number | null }) {
   const map = useMap();
@@ -98,12 +142,7 @@ function MapController({ vessels, selectedMmsi }: { vessels: VesselLive[]; selec
   return null;
 }
 
-function MapContent({
-  vessels,
-  selectedMmsi,
-  track,
-  onSelect,
-}: Props) {
+function MapContent({ vessels, selectedMmsi, track, onSelect }: Props) {
   const [zoom, setZoom] = useState(7);
   const map = useMap();
 
@@ -125,9 +164,7 @@ function MapContent({
 
   return (
     <>
-      {trackPositions.length > 1 && (
-        <Polyline positions={trackPositions} color="#f59e0b" weight={2} opacity={0.7} />
-      )}
+      <AnimatedTrack positions={trackPositions} />
       {clusters.map((c) => (
         <ClusterMarker
           key={c.key}
