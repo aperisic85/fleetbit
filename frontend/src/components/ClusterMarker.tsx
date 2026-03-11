@@ -47,7 +47,7 @@ export function ClusterMarker({ lat, lon, count, onClick }: Props) {
       zIndexOffset={-100}
     >
       <Tooltip direction="top" offset={[0, -8]} opacity={0.9}>
-        <span style={{ fontSize: 12 }}>{count} brodova — klikni za zoom</span>
+        <span style={{ fontSize: 12 }}>{count} plovila — klikni za zoom</span>
       </Tooltip>
     </Marker>
   );

@@ -224,17 +224,17 @@ export function StatsWidget({ vessels }: Props) {
         <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
           {animTotal}
         </div>
-        <div style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 2 }}>brodova aktivno</div>
+        <div style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 2 }}>plovila u floti</div>
       </div>
 
       {/* Speed rows */}
       <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>
-        Distribucija
+        Status flote
       </div>
-      <SpeedRow icon={<IconAnchor color="#94a3b8" />} label="Sidreno / Vez" count={anchored} total={total} color="#94a3b8" />
-      <SpeedRow icon={<IconShip color="#3b82f6" />}   label="Sporo  < 5 kn"  count={s0_5}    total={total} color="#3b82f6" />
-      <SpeedRow icon={<IconSlow color="#10b981" />}   label="5 – 12 kn"       count={s5_12}   total={total} color="#10b981" />
-      <SpeedRow icon={<IconFast color="#f59e0b" />}   label="Brzo  12+ kn"    count={s12p}    total={total} color="#f59e0b" />
+      <SpeedRow icon={<IconAnchor color="#94a3b8" />} label="U luci / sidrištu" count={anchored} total={total} color="#94a3b8" />
+      <SpeedRow icon={<IconShip color="#3b82f6" />}   label="Polazak  < 5 kn"   count={s0_5}    total={total} color="#3b82f6" />
+      <SpeedRow icon={<IconSlow color="#10b981" />}   label="Krstarenje"         count={s5_12}   total={total} color="#10b981" />
+      <SpeedRow icon={<IconFast color="#f59e0b" />}   label="Brza vožnja  12+"   count={s12p}    total={total} color="#f59e0b" />
 
       {/* Avg speed + sparkline */}
       <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--bg-surface)' }}>

@@ -82,7 +82,7 @@ export default function App() {
               if (now - lastVesselToastRef.current > 4000) {
                 lastVesselToastRef.current = now;
                 const name = pos.name ?? `MMSI ${pos.mmsi}`;
-                addToast(`${name} ažuriran`, 'info');
+                addToast(`Pozicija ažurirana: ${name}`, 'info');
               }
             }
             return sel;

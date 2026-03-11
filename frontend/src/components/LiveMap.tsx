@@ -218,7 +218,7 @@ export function LiveMap({ vessels, selectedMmsi, track, onSelect }: Props) {
 
       <button
         onClick={() => setShowHeatmap(h => !h)}
-        title={showHeatmap ? 'Isključi heatmap' : 'Uključi heatmap gustoće prometa'}
+        title={showHeatmap ? 'Sakrij prometne zone' : 'Prikaži prometne zone plovidbe'}
         style={{
           position: 'absolute',
           bottom: 12,
@@ -241,7 +241,7 @@ export function LiveMap({ vessels, selectedMmsi, track, onSelect }: Props) {
         }}
       >
         <span style={{ fontSize: 14 }}>🔥</span>
-        Heatmap
+        Prometne zone
       </button>
     </div>
   );
