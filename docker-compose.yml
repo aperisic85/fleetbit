@@ -41,7 +41,7 @@ services:
       dockerfile: Dockerfile.frontend
     container_name: fleetbit_frontend
     ports:
-      - "8083:80"
+      - "8086:80"
     depends_on:
       - api
     networks:
