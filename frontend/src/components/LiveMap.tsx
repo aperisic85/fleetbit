@@ -22,7 +22,17 @@ function MapController({ vessels, selectedMmsi }: { vessels: VesselLive[]; selec
     if (selectedMmsi == null) return;
     const vessel = vessels.find((v) => v.mmsi === selectedMmsi);
     if (vessel?.lat != null && vessel?.lon != null) {
-      map.flyTo([vessel.lat, vessel.lon], Math.max(map.getZoom(), 12), { duration: 1.2 });
+      const zoom = Math.max(map.getZoom(), 12);
+      const isMobile = window.innerWidth <= 768;
+      if (isMobile) {
+        // Panel zauzima ~55vh dna — pomakni centar prema dolje da brod bude u vidljivom gornjem dijelu
+        const targetPoint = map.project([vessel.lat, vessel.lon], zoom);
+        const offset = map.getSize().y * 0.27;
+        const adjustedCenter = map.unproject(targetPoint.add([0, offset]), zoom);
+        map.flyTo(adjustedCenter, zoom, { duration: 1.2 });
+      } else {
+        map.flyTo([vessel.lat, vessel.lon], zoom, { duration: 1.2 });
+      }
     }
   }, [selectedMmsi]);
 
