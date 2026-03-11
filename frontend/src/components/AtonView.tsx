@@ -59,7 +59,7 @@ function AtonListItem({
 interface Props {
   atons: AtonLive[];
   loading: boolean;
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 export function AtonView({ atons, loading, onBack }: Props) {
