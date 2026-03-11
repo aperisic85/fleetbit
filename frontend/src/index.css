@@ -10,3 +10,8 @@ html, body, #root {
   height: 100%;
   background: #0f172a;
 }
+
+@keyframes pulseRing {
+  0%   { transform: scale(0.4); opacity: 0.9; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
