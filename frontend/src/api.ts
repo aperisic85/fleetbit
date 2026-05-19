@@ -21,6 +21,12 @@ export async function fetchTrack(mmsi: number, from?: string, to?: string, limit
   return res.json();
 }
 
+export async function fetchLiveAtons() {
+  const res = await fetch(`${BASE}/atons/live`);
+  if (!res.ok) throw new Error('Failed to fetch live AtoNs');
+  return res.json();
+}
+
 export function createWebSocket(onMessage: (data: unknown) => void): WebSocket {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const ws = new WebSocket(`${proto}://${location.host}/ws`);

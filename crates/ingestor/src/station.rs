@@ -1,5 +1,6 @@
 use crate::config::StationConfig;
 use crate::parser::{FleetbitParser, ParsedMessage};
+use shared::models::aton::AtonUpdate;
 use shared::models::vessel::{PositionUpdate, StaticUpdate};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::net::TcpStream;
@@ -11,6 +12,7 @@ pub async fn run(
     config: StationConfig,
     pos_tx: Sender<PositionUpdate>,
     static_tx: Sender<StaticUpdate>,
+    aton_tx: Sender<AtonUpdate>,
 ) {
     let mut attempt = 0u32;
 
@@ -28,6 +30,7 @@ pub async fn run(
                     &config.name,
                     pos_tx.clone(),
                     static_tx.clone(),
+                    aton_tx.clone(),
                 )
                 .await
                 {
@@ -55,6 +58,7 @@ async fn handle_stream(
     _station_name: &str,
     pos_tx: Sender<PositionUpdate>,
     static_tx: Sender<StaticUpdate>,
+    aton_tx: Sender<AtonUpdate>,
 ) -> anyhow::Result<()> {
     let reader = BufReader::new(stream);
     let mut lines = reader.lines();
@@ -75,6 +79,11 @@ async fn handle_stream(
             }
             Some(ParsedMessage::Static(update)) => {
                 if static_tx.send(update).await.is_err() {
+                    break;
+                }
+            }
+            Some(ParsedMessage::Aton(update)) => {
+                if aton_tx.send(update).await.is_err() {
                     break;
                 }
             }

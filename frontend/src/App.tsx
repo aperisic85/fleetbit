@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { VesselLive, TrackPoint } from './types';
-import { fetchLiveVessels, fetchTrack, createWebSocket } from './api';
+import type { VesselLive, TrackPoint, AtonLive } from './types';
+import { fetchLiveVessels, fetchTrack, createWebSocket, fetchLiveAtons } from './api';
 import { Sidebar, type FilterStatus } from './components/Sidebar';
 import { LiveMap } from './components/LiveMap';
 import { VesselPanel } from './components/VesselPanel';
 import { StatsWidget } from './components/StatsWidget';
 import { ToastContainer, type ToastMessage } from './components/Toast';
+import { AtonView } from './components/AtonView';
 
 let toastIdCounter = 1;
 
@@ -19,6 +20,9 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(false);
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [mode, setMode] = useState<'vessels' | 'atons'>('vessels');
+  const [atons, setAtons] = useState<AtonLive[]>([]);
+  const [atonsLoading, setAtonsLoading] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const prevWsStatus = useRef<string>('connecting');
   // Rate-limit vessel update toasts — show max 1 per 4s
@@ -57,6 +61,15 @@ export default function App() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (mode !== 'atons') return;
+    setAtonsLoading(true);
+    fetchLiveAtons()
+      .then((data) => setAtons(data.atons ?? []))
+      .catch(console.error)
+      .finally(() => setAtonsLoading(false));
+  }, [mode]);
 
   useEffect(() => {
     function connect() {
@@ -151,6 +164,10 @@ export default function App() {
     ? { color: '#f59e0b', bg: '#f59e0b18', border: '#f59e0b40', label: 'Spajanje...', pulse: true }
     : { color: '#f87171', bg: '#f8717118', border: '#f8717140', label: 'Offline', pulse: false };
 
+  if (mode === 'atons') {
+    return <AtonView atons={atons} loading={atonsLoading} onBack={() => setMode('vessels')} />;
+  }
+
   return (
     <div style={{ display: 'flex', height: '100%', fontFamily: 'system-ui, sans-serif', position: 'relative', overflow: 'hidden' }}>
 
@@ -215,6 +232,32 @@ export default function App() {
             ☰
           </button>
         )}
+
+        {/* AtoN gumb — uvijek vidljiv u gornjem desnom kutu */}
+        <button
+          onClick={() => setMode('atons')}
+          style={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            zIndex: 1200,
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-color)',
+            color: 'var(--text-primary)',
+            borderRadius: 8,
+            padding: '7px 12px',
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            letterSpacing: '0.02em',
+          }}
+        >
+          ⚓ AtoN
+        </button>
 
         <LiveMap
           vessels={mapVessels}
