@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { MapContainer, TileLayer, ZoomControl } from 'react-leaflet';
+import { useState, useMemo, useEffect } from 'react';
+import { MapContainer, TileLayer, ZoomControl, useMap } from 'react-leaflet';
 import type { AtonLive } from '../types';
 import { AtonMarker } from './AtonMarker';
 import { AtonPanel } from './AtonPanel';
@@ -54,6 +54,16 @@ function AtonListItem({
       </div>
     </div>
   );
+}
+
+function FlyToAton({ aton }: { aton: AtonLive | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (aton?.lat != null && aton?.lon != null) {
+      map.flyTo([aton.lat, aton.lon], Math.max(map.getZoom(), 12), { duration: 1.2 });
+    }
+  }, [aton, map]);
+  return null;
 }
 
 interface Props {
@@ -223,6 +233,7 @@ export function AtonView({ atons, loading, onBack }: Props) {
         >
           <TileLayer url={tileUrl} attribution="© CartoDB" />
           <ZoomControl position="bottomright" />
+          <FlyToAton aton={selectedAton} />
           {mapAtons.map(a => (
             <AtonMarker
               key={a.mmsi}
