@@ -1,8 +1,10 @@
+use ais::messages::aid_to_navigation_report::NavaidType;
 use ais::messages::position_report::NavigationStatus;
 use ais::messages::static_data_report::MessagePart;
 use ais::messages::types::ShipType;
 use ais::messages::AisMessage;
 use ais::{AisFragments, AisParser};
+use shared::models::aton::AtonUpdate;
 use shared::models::vessel::{PositionUpdate, StaticUpdate};
 
 pub struct FleetbitParser {
@@ -31,6 +33,7 @@ impl FleetbitParser {
 pub enum ParsedMessage {
     Position(PositionUpdate),
     Static(StaticUpdate),
+    Aton(AtonUpdate),
 }
 
 fn nav_status_to_i16(status: Option<NavigationStatus>) -> Option<i16> {
@@ -102,6 +105,43 @@ fn ship_type_to_i16(ship_type: ShipType) -> i16 {
         ShipType::TankerHazardousCategoryC              => 83,
         ShipType::TankerHazardousCategoryD              => 84,
         _                                               => 0,
+    }
+}
+
+fn navaid_type_to_i16(t: NavaidType) -> i16 {
+    match t {
+        NavaidType::ReferencePoint                          => 1,
+        NavaidType::Racon                                   => 2,
+        NavaidType::FixedStructureOffShore                  => 3,
+        NavaidType::Spare                                   => 4,
+        NavaidType::LightWithoutSectors                     => 5,
+        NavaidType::LightWithSectors                        => 6,
+        NavaidType::LeadingLightFront                       => 7,
+        NavaidType::LeadingLightRear                        => 8,
+        NavaidType::BeaconCardinalN                         => 9,
+        NavaidType::BeaconCardinalE                         => 10,
+        NavaidType::BeaconCardinalS                         => 11,
+        NavaidType::BeaconCardinalW                         => 12,
+        NavaidType::BeaconPortHand                          => 13,
+        NavaidType::BeaconStarboardHand                     => 14,
+        NavaidType::BeaconPreferredChannelPortHand          => 15,
+        NavaidType::BeaconPreferredChannelStarboardHand     => 16,
+        NavaidType::BeaconIsolatedDanger                    => 17,
+        NavaidType::BeaconSafeWater                         => 18,
+        NavaidType::BeaconSpecialMark                       => 19,
+        NavaidType::CardinalMarkN                           => 20,
+        NavaidType::CardinalMarkE                           => 21,
+        NavaidType::CardinalMarkS                           => 22,
+        NavaidType::CardinalMarkW                           => 23,
+        NavaidType::PortHandMark                            => 24,
+        NavaidType::StarboardHandMark                       => 25,
+        NavaidType::PreferredChannelPortHand                => 26,
+        NavaidType::PreferredChannelStarboardHand           => 27,
+        NavaidType::IsolatedDanger                          => 28,
+        NavaidType::SafeWater                               => 29,
+        NavaidType::SpecialMark                             => 30,
+        NavaidType::LightVesselOrLanbyOrRigs                => 31,
+        NavaidType::Unknown(v)                              => v as i16,
     }
 }
 
@@ -191,6 +231,36 @@ fn extract_message(msg: AisMessage, station_id: i16) -> Option<ParsedMessage> {
                 }
                 _ => None,
             }
+        }
+
+        // Tip 21 — Aid to Navigation
+        AisMessage::AidToNavigationReport(a) => {
+            let name_str = a.name.to_string();
+            let name = {
+                let trimmed = name_str.trim();
+                if trimmed.is_empty() { None } else { Some(trimmed.to_string()) }
+            };
+
+            let reg = a.regional_reserved;
+            // bit 0: alarm, bits 1-3: svjetlo, bits 4-5: racon
+            let alarm        = (reg & 0x01) != 0;
+            let light_status = ((reg >> 1) & 0x07) as i16;
+            let racon_status = ((reg >> 4) & 0x03) as i16;
+
+            Some(ParsedMessage::Aton(AtonUpdate {
+                mmsi:         a.mmsi as i32,
+                name,
+                aid_type:     a.aid_type.map(navaid_type_to_i16),
+                lat:          a.latitude.map(|v| v as f64),
+                lon:          a.longitude.map(|v| v as f64),
+                off_position: a.off_position,
+                virtual_aid:  a.virtual_aid,
+                status_raw:   reg as i16,
+                alarm,
+                light_status,
+                racon_status,
+                station_id,
+            }))
         }
 
         _ => None,

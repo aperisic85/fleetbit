@@ -37,3 +37,18 @@ export interface TrackPoint {
   sog: number | null;
   cog: number | null;
 }
+
+export interface AtonLive {
+  mmsi: number;
+  name: string | null;
+  aid_type: number | null;
+  lat: number | null;
+  lon: number | null;
+  off_position: boolean;
+  virtual_aid: boolean;
+  status_raw: number | null;
+  alarm: boolean | null;
+  light_status: number | null;   // 0-7 (3 bita)
+  racon_status: number | null;   // 0-3 (2 bita)
+  last_seen: string | null;
+}
