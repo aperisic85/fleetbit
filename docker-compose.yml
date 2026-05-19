@@ -30,6 +30,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     networks:
       - fleetbit_net
 
@@ -39,7 +41,7 @@ services:
       dockerfile: Dockerfile.frontend
     container_name: fleetbit_frontend
     ports:
-      - "8086:80"
+      - "8087:80"
     depends_on:
       - api
     networks:
@@ -58,6 +60,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    restart: no
     networks:
       - fleetbit_net
 
@@ -72,6 +75,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     restart: unless-stopped
     networks:
       - fleetbit_net
