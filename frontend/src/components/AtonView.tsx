@@ -138,14 +138,16 @@ export function AtonView({ atons, loading, onBack }: Props) {
         {/* Header */}
         <div style={{ padding: '12px 12px 8px', borderBottom: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <button
-              onClick={onBack}
-              style={{
-                background: 'none', border: '1px solid var(--border-color)',
-                color: 'var(--text-secondary)', borderRadius: 6, padding: '4px 8px',
-                cursor: 'pointer', fontSize: 12,
-              }}
-            >← Brodovi</button>
+            {onBack && (
+              <button
+                onClick={onBack}
+                style={{
+                  background: 'none', border: '1px solid var(--border-color)',
+                  color: 'var(--text-secondary)', borderRadius: 6, padding: '4px 8px',
+                  cursor: 'pointer', fontSize: 12,
+                }}
+              >← Brodovi</button>
+            )}
             <span style={{ fontWeight: 700, fontSize: 14, flex: 1, color: 'var(--text-primary)' }}>AtoN Pregled</span>
             <button
               onClick={toggleTheme}
