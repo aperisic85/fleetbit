@@ -242,10 +242,15 @@ fn extract_message(msg: AisMessage, station_id: i16) -> Option<ParsedMessage> {
             };
 
             let reg = a.regional_reserved;
-            // bit 0: alarm, bits 1-3: svjetlo, bits 4-5: racon
+            // IALA A-126 §4.6.4, Page 7 (bits 7-5 = 0b111):
+            //   bit 0:    alarm
+            //   bits 2-1: light status (2 bits)
+            //   bits 4-3: racon status (2 bits)
+            //   bits 7-5: page id (must be 7 for valid status data)
+            let page_id      = (reg >> 5) & 0x07;
             let alarm        = (reg & 0x01) != 0;
-            let light_status = ((reg >> 1) & 0x07) as i16;
-            let racon_status = ((reg >> 4) & 0x03) as i16;
+            let light_status = if page_id == 7 { ((reg >> 1) & 0x03) as i16 } else { 0 };
+            let racon_status = if page_id == 7 { ((reg >> 3) & 0x03) as i16 } else { 0 };
 
             Some(ParsedMessage::Aton(AtonUpdate {
                 mmsi:         a.mmsi as i32,

@@ -1,25 +1,22 @@
 import type { AtonLive } from './types';
 
-// Bit 0: alarm
-// Bits 1-3: light_status
-// Bits 4-5: racon_status
+// IALA A-126 §4.6.4 — Page 7 (bits 7-5 = 111):
+//   bit 0:    alarm (0=OK, 1=Alarm)
+//   bits 2-1: light_status (2 bita)
+//   bits 4-3: racon_status (2 bita)
 
 export const LIGHT_STATUS: Record<number, { label: string; color: string }> = {
   0: { label: 'Nije praćeno', color: '#64748b' },
   1: { label: 'Upaljeno',     color: '#22c55e' },
   2: { label: 'Ugašeno',      color: '#ef4444' },
-  3: { label: 'Smanjeno',     color: '#f59e0b' },
-  4: { label: 'Rezervirano',  color: '#64748b' },
-  5: { label: 'Rezervirano',  color: '#64748b' },
-  6: { label: 'Rezervirano',  color: '#64748b' },
-  7: { label: 'Rezervirano',  color: '#64748b' },
+  3: { label: 'Greška',       color: '#ef4444' },
 };
 
 export const RACON_STATUS: Record<number, { label: string; color: string }> = {
-  0: { label: 'Nije praćeno', color: '#64748b' },
-  1: { label: 'Aktivan',      color: '#22c55e' },
-  2: { label: 'Kvar',         color: '#ef4444' },
-  3: { label: 'Rezervirano',  color: '#64748b' },
+  0: { label: 'Nije instaliran', color: '#64748b' },
+  1: { label: 'Nije praćen',     color: '#f59e0b' },
+  2: { label: 'Operativan',      color: '#22c55e' },
+  3: { label: 'Greška',          color: '#ef4444' },
 };
 
 // Ukupna ocjena statusa AtoNa
@@ -29,11 +26,11 @@ export function atonHealth(a: AtonLive): AtonHealth {
   if (a.alarm === null && a.light_status === null && a.racon_status === null) return 'unknown';
   if (a.alarm) return 'alarm';
   if (a.off_position) return 'alarm';
-  const lightFault = a.light_status != null && a.light_status === 2;
-  const raconFault = a.racon_status != null && a.racon_status === 2;
+  const lightFault = a.light_status != null && (a.light_status === 2 || a.light_status === 3);
+  const raconFault = a.racon_status != null && a.racon_status === 3;
   if (lightFault || raconFault) return 'alarm';
-  const lightReduced = a.light_status === 3;
-  if (lightReduced) return 'warning';
+  const raconUnmonitored = a.racon_status === 1;
+  if (raconUnmonitored) return 'warning';
   return 'ok';
 }
 
