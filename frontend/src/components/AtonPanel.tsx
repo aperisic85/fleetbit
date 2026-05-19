@@ -22,7 +22,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: '1px solid var(--border-color)' }}>
       <span style={{ fontSize: 11, color: 'var(--text-secondary)', flexShrink: 0, marginRight: 8 }}>{label}</span>
-      <span style={{ fontSize: 12, fontWeight: 500, textAlign: 'right' }}>{value}</span>
+      <span style={{ fontSize: 12, fontWeight: 500, textAlign: 'right', color: 'var(--text-primary)' }}>{value}</span>
     </div>
   );
 }
@@ -30,43 +30,16 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 interface Props {
   aton: AtonLive;
   onClose: () => void;
-  isMobile: boolean;
 }
 
-export function AtonPanel({ aton, onClose, isMobile }: Props) {
+export function AtonPanel({ aton, onClose }: Props) {
   const health = atonHealth(aton);
   const healthColor = HEALTH_COLOR[health];
-
   const lightInfo = aton.light_status != null ? LIGHT_STATUS[aton.light_status] : null;
   const raconInfo = aton.racon_status != null ? RACON_STATUS[aton.racon_status] : null;
 
-  const panelStyle: React.CSSProperties = isMobile
-    ? {
-        position: 'fixed',
-        bottom: 0, left: 0, right: 0,
-        maxHeight: '60vh',
-        borderRadius: '16px 16px 0 0',
-        zIndex: 2000,
-        overflowY: 'auto',
-      }
-    : {
-        position: 'absolute',
-        top: 12, right: 12,
-        width: 280,
-        maxHeight: 'calc(100vh - 24px)',
-        borderRadius: 12,
-        zIndex: 1500,
-        overflowY: 'auto',
-      };
-
   return (
-    <div style={{
-      ...panelStyle,
-      background: 'var(--bg-surface)',
-      border: '1px solid var(--border-color)',
-      boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
-      padding: 16,
-    }}>
+    <div style={{ padding: 16, overflowY: 'auto', color: 'var(--text-primary)' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <span style={{
@@ -84,8 +57,8 @@ export function AtonPanel({ aton, onClose, isMobile }: Props) {
           onClick={onClose}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--text-secondary)', fontSize: 18, padding: '0 4px',
-            lineHeight: 1,
+            color: 'var(--text-secondary)', fontSize: 20, padding: '0 4px',
+            lineHeight: 1, flexShrink: 0,
           }}
         >×</button>
       </div>
@@ -106,7 +79,6 @@ export function AtonPanel({ aton, onClose, isMobile }: Props) {
           Status
         </div>
 
-        {/* Alarm bit */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 8px', borderRadius: 6, marginBottom: 4, background: aton.alarm ? '#ef444422' : 'transparent', border: '1px solid var(--border-color)' }}>
           <span style={{ fontSize: 12 }}>Alarm</span>
           <StatusBadge
@@ -115,7 +87,6 @@ export function AtonPanel({ aton, onClose, isMobile }: Props) {
           />
         </div>
 
-        {/* Svjetlo */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 8px', borderRadius: 6, marginBottom: 4, border: '1px solid var(--border-color)' }}>
           <span style={{ fontSize: 12 }}>Svjetlo</span>
           {lightInfo
@@ -123,7 +94,6 @@ export function AtonPanel({ aton, onClose, isMobile }: Props) {
             : <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>N/A</span>}
         </div>
 
-        {/* RACON */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border-color)' }}>
           <span style={{ fontSize: 12 }}>RACON</span>
           {raconInfo
