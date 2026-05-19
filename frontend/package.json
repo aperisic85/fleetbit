@@ -5,7 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:charter": "vite --mode charter",
+    "dev:aton": "vite --mode aton",
     "build": "tsc -b && vite build",
+    "build:charter": "tsc -b && vite build --mode charter",
+    "build:aton": "tsc -b && vite build --mode aton",
     "lint": "eslint .",
     "preview": "vite preview"
   },

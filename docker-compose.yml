@@ -35,13 +35,29 @@ services:
     networks:
       - fleetbit_net
 
-  frontend:
+  frontend_charter:
     build:
       context: .
       dockerfile: Dockerfile.frontend
-    container_name: fleetbit_frontend
+      args:
+        APP_MODE: charter
+    container_name: fleetbit_frontend_charter
     ports:
       - "8087:80"
+    depends_on:
+      - api
+    networks:
+      - fleetbit_net
+
+  frontend_aton:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        APP_MODE: aton
+    container_name: fleetbit_frontend_aton
+    ports:
+      - "8088:80"
     depends_on:
       - api
     networks:
