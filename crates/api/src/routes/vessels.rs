@@ -7,6 +7,7 @@ use serde::Deserialize;
 use shared::db::queries::vessels as db;
 
 use crate::{
+    auth::AuthUser,
     error::{ApiError, ApiResult},
     state::AppState,
 };
@@ -33,8 +34,9 @@ pub async fn live_vessels(
 }
 
 /// GET /api/v1/vessels/:mmsi
-/// Statički podaci broda zajedno s zadnjom pozicijom.
+/// Statički podaci broda zajedno s zadnjom pozicijom. Zahtijeva prijavu.
 pub async fn get_vessel(
+    AuthUser(_claims): AuthUser,
     State(state): State<AppState>,
     Path(mmsi): Path<i32>,
 ) -> ApiResult<Json<serde_json::Value>> {
@@ -58,8 +60,9 @@ pub async fn get_vessel(
 }
 
 /// GET /api/v1/vessels/:mmsi/track?from=&to=&limit=
-/// Historijski trag broda.
+/// Historijski trag broda. Zahtijeva prijavu.
 pub async fn get_track(
+    AuthUser(_claims): AuthUser,
     State(state): State<AppState>,
     Path(mmsi): Path<i32>,
     Query(params): Query<TrackParams>,
