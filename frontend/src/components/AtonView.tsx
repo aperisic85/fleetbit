@@ -91,7 +91,6 @@ export function AtonView({ atons, loading, onBack }: Props) {
         String(a.mmsi).includes(q)
       );
     }
-    // sort: alarmi na vrhu, zatim po imenu
     return [...list].sort((a, b) => {
       const ha = atonHealth(a);
       const hb = atonHealth(b);
@@ -115,17 +114,26 @@ export function AtonView({ atons, loading, onBack }: Props) {
     : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
 
   return (
-    <div style={{ display: 'flex', height: '100%', fontFamily: 'system-ui, sans-serif' }}>
+    // flex: 1 + minWidth: 0 → ispunjava AppShell prostor bez overflow-a
+    <div style={{
+      display: 'flex',
+      flex: 1,
+      minWidth: 0,
+      height: '100%',
+      fontFamily: 'system-ui, sans-serif',
+      overflow: 'hidden',
+    }}>
 
       {/* Lijeva bočna traka */}
       <div style={{
-        width: 260,
+        width: isMobile ? '100%' : 260,
         flexShrink: 0,
         display: 'flex',
         flexDirection: 'column',
         background: 'var(--bg-surface)',
         borderRight: '1px solid var(--border-color)',
         zIndex: 10,
+        ...(isMobile && selectedMmsi != null ? { display: 'none' } : {}),
       }}>
         {/* Header */}
         <div style={{ padding: '12px 12px 8px', borderBottom: '1px solid var(--border-color)' }}>
@@ -138,7 +146,7 @@ export function AtonView({ atons, loading, onBack }: Props) {
                 cursor: 'pointer', fontSize: 12,
               }}
             >← Brodovi</button>
-            <span style={{ fontWeight: 700, fontSize: 14, flex: 1 }}>AtoN Pregled</span>
+            <span style={{ fontWeight: 700, fontSize: 14, flex: 1, color: 'var(--text-primary)' }}>AtoN Pregled</span>
             <button
               onClick={toggleTheme}
               style={{
@@ -185,7 +193,7 @@ export function AtonView({ atons, loading, onBack }: Props) {
               padding: '6px 8px',
               borderRadius: 6,
               border: '1px solid var(--border-color)',
-              background: 'var(--bg-input, var(--bg-surface))',
+              background: 'var(--bg-base)',
               color: 'var(--text-primary)',
               fontSize: 12,
               boxSizing: 'border-box',
@@ -217,14 +225,21 @@ export function AtonView({ atons, loading, onBack }: Props) {
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '6px 12px', borderTop: '1px solid var(--border-color)', fontSize: 10, color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
+        <div style={{
+          padding: '6px 12px',
+          borderTop: '1px solid var(--border-color)',
+          fontSize: 10,
+          color: 'var(--text-secondary)',
+          display: 'flex',
+          justifyContent: 'space-between',
+        }}>
           <span>Ukupno: {atons.length}</span>
           <span>Prikazano: {filtered.length}</span>
         </div>
       </div>
 
-      {/* Karta */}
-      <div style={{ flex: 1, position: 'relative' }}>
+      {/* Karta — flex: 1 + minWidth: 0 + overflow: hidden daje Leafletu pravi prostor */}
+      <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
         <MapContainer
           center={[44.5, 15.0]}
           zoom={8}
@@ -244,12 +259,48 @@ export function AtonView({ atons, loading, onBack }: Props) {
           ))}
         </MapContainer>
 
-        {selectedAton && (
-          <AtonPanel
-            aton={selectedAton}
-            onClose={() => setSelectedMmsi(null)}
-            isMobile={isMobile}
-          />
+        {/* Panel s detaljima — overlay na karti */}
+        {selectedAton && !isMobile && (
+          <div style={{
+            position: 'absolute',
+            bottom: 16,
+            left: 16,
+            width: 300,
+            maxHeight: 'calc(100% - 32px)',
+            zIndex: 1500,
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 12,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.35)',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+          }}>
+            <AtonPanel aton={selectedAton} onClose={() => setSelectedMmsi(null)} />
+          </div>
+        )}
+
+        {/* Mobile: bottom sheet */}
+        {selectedAton && isMobile && (
+          <div style={{
+            position: 'fixed',
+            bottom: 0, left: 0, right: 0,
+            maxHeight: '65vh',
+            zIndex: 2000,
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '16px 16px 0 0',
+            boxShadow: '0 -4px 24px rgba(0,0,0,0.4)',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+          }}>
+            {/* Drag handle */}
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 4px' }}>
+              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-color)' }} />
+            </div>
+            <AtonPanel aton={selectedAton} onClose={() => setSelectedMmsi(null)} />
+          </div>
         )}
       </div>
     </div>
