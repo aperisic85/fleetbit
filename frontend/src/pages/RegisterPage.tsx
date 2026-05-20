@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { apiRegister } from '../api';
 import { useAuth } from '../AuthContext';
 
+const isAton = import.meta.env.VITE_APP_MODE === 'aton';
+
 export default function RegisterPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -55,7 +57,7 @@ export default function RegisterPage() {
             </span>
           </Link>
           <p style={{ color: '#64748b', fontSize: 14, marginTop: 8 }}>
-            Registrirajte charter kompaniju
+            {isAton ? 'Registrirajte se za pristup' : 'Registrirajte charter kompaniju'}
           </p>
         </div>
 
@@ -67,12 +69,14 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
-            <label style={labelStyle}>Naziv charter kompanije</label>
+            <label style={labelStyle}>
+              {isAton ? 'Naziv organizacije' : 'Naziv charter kompanije'}
+            </label>
             <input
               type="text"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="npr. Adriatic Yachts d.o.o."
+              placeholder={isAton ? 'npr. Lučka kapetanija Split' : 'npr. Adriatic Yachts d.o.o.'}
               style={inputStyle}
             />
           </div>
@@ -85,7 +89,7 @@ export default function RegisterPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoFocus
-              placeholder="ime@kompanija.hr"
+              placeholder="ime@organizacija.hr"
               style={inputStyle}
             />
           </div>
@@ -125,7 +129,9 @@ export default function RegisterPage() {
 
         <p style={{ textAlign: 'center', marginTop: 24, fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
           Registracijom prihvaćate uvjete korištenja platforme.
-          Vaš račun će biti u ulozi <strong style={{ color: '#94a3b8' }}>klijent</strong> (charter kompanija).
+          {!isAton && (
+            <> Vaš račun će biti u ulozi <strong style={{ color: '#94a3b8' }}>klijent</strong>.</>
+          )}
         </p>
 
         <p style={{ textAlign: 'center', marginTop: 16, fontSize: 14, color: '#64748b' }}>

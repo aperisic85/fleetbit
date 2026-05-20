@@ -36,11 +36,13 @@
 html {
   height: 100dvh;
   background: var(--bg-base);
+  overflow-x: hidden;
 }
 
 body, #root {
   height: 100%;
   background: var(--bg-base);
+  overflow-x: hidden;
 }
 
 @keyframes pulseRing {

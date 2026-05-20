@@ -1,8 +1,16 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 
 export default function LandingPage() {
   const { isAuthenticated, user } = useAuth();
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   return (
     <div style={{
@@ -12,13 +20,14 @@ export default function LandingPage() {
       fontFamily: 'system-ui, sans-serif',
       display: 'flex',
       flexDirection: 'column',
+      overflowX: 'hidden',
     }}>
       {/* Navigacijska traka */}
       <nav style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '16px 32px',
+        padding: isMobile ? '12px 16px' : '16px 32px',
         borderBottom: '1px solid rgba(255,255,255,0.08)',
         backdropFilter: 'blur(8px)',
         position: 'sticky',
@@ -27,30 +36,36 @@ export default function LandingPage() {
         background: 'rgba(15,23,42,0.8)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 26 }}>⚓</span>
-          <span style={{ fontWeight: 700, fontSize: 20, letterSpacing: '-0.01em' }}>
+          <span style={{ fontSize: isMobile ? 22 : 26 }}>⚓</span>
+          <span style={{ fontWeight: 700, fontSize: isMobile ? 17 : 20, letterSpacing: '-0.01em' }}>
             Fleet<span style={{ color: '#38bdf8' }}>bit</span>
           </span>
         </div>
 
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <Link to="/live" style={linkStyle}>
-            Karta brodova
-          </Link>
+        <div style={{ display: 'flex', gap: isMobile ? 8 : 12, alignItems: 'center' }}>
+          {!isMobile && (
+            <Link to="/live" style={linkStyle}>
+              Karta brodova
+            </Link>
+          )}
           {isAuthenticated ? (
             <>
-              <span style={{ color: '#94a3b8', fontSize: 13 }}>
-                {user?.email}
-              </span>
+              {!isMobile && (
+                <span style={{ color: '#94a3b8', fontSize: 13 }}>
+                  {user?.email}
+                </span>
+              )}
               <Link to="/app" style={primaryBtnStyle}>
                 Otvori aplikaciju
               </Link>
             </>
           ) : (
             <>
-              <Link to="/login" style={linkStyle}>
-                Prijava
-              </Link>
+              {!isMobile && (
+                <Link to="/login" style={linkStyle}>
+                  Prijava
+                </Link>
+              )}
               <Link to="/register" style={primaryBtnStyle}>
                 Registracija
               </Link>
@@ -64,8 +79,8 @@ export default function LandingPage() {
         <section style={{
           maxWidth: 900,
           width: '100%',
-          margin: '80px auto 60px',
-          padding: '0 32px',
+          margin: isMobile ? '40px auto 32px' : '80px auto 60px',
+          padding: isMobile ? '0 16px' : '0 32px',
           textAlign: 'center',
         }}>
           <div style={{
@@ -83,7 +98,7 @@ export default function LandingPage() {
           </div>
 
           <h1 style={{
-            fontSize: 'clamp(36px, 6vw, 64px)',
+            fontSize: 'clamp(28px, 6vw, 64px)',
             fontWeight: 800,
             lineHeight: 1.1,
             marginBottom: 24,
@@ -95,7 +110,7 @@ export default function LandingPage() {
           </h1>
 
           <p style={{
-            fontSize: 18,
+            fontSize: isMobile ? 16 : 18,
             color: '#94a3b8',
             maxWidth: 600,
             margin: '0 auto 40px',
@@ -105,20 +120,20 @@ export default function LandingPage() {
             Savršeno za charter kompanije, brodare i maritimne operatere.
           </p>
 
-          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             {isAuthenticated ? (
-              <Link to="/app" style={{ ...primaryBtnStyle, fontSize: 16, padding: '14px 32px' }}>
+              <Link to="/app" style={{ ...primaryBtnStyle, fontSize: 16, padding: '14px 28px' }}>
                 Otvori aplikaciju →
               </Link>
             ) : (
               <>
-                <Link to="/register" style={{ ...primaryBtnStyle, fontSize: 16, padding: '14px 32px' }}>
+                <Link to="/register" style={{ ...primaryBtnStyle, fontSize: 16, padding: '14px 28px' }}>
                   Počni besplatno →
                 </Link>
                 <Link to="/live" style={{
                   ...linkStyle,
                   fontSize: 16,
-                  padding: '14px 32px',
+                  padding: '14px 28px',
                   border: '1px solid rgba(255,255,255,0.15)',
                   borderRadius: 8,
                 }}>
@@ -134,17 +149,17 @@ export default function LandingPage() {
           maxWidth: 1100,
           width: '100%',
           margin: '0 auto 80px',
-          padding: '0 32px',
+          padding: isMobile ? '0 16px' : '0 32px',
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: 24,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gap: 20,
         }}>
           {features.map((f) => (
             <div key={f.title} style={{
               background: 'rgba(255,255,255,0.04)',
               border: '1px solid rgba(255,255,255,0.08)',
               borderRadius: 12,
-              padding: 28,
+              padding: isMobile ? 20 : 28,
             }}>
               <div style={{ fontSize: 32, marginBottom: 12 }}>{f.icon}</div>
               <h3 style={{ fontSize: 17, fontWeight: 600, marginBottom: 8 }}>{f.title}</h3>
@@ -160,16 +175,16 @@ export default function LandingPage() {
             background: 'rgba(56,189,248,0.06)',
             borderTop: '1px solid rgba(56,189,248,0.15)',
             borderBottom: '1px solid rgba(56,189,248,0.15)',
-            padding: '60px 32px',
+            padding: isMobile ? '40px 16px' : '60px 32px',
             textAlign: 'center',
           }}>
-            <h2 style={{ fontSize: 28, fontWeight: 700, marginBottom: 12 }}>
+            <h2 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 700, marginBottom: 12 }}>
               Registrirajte svoju charter kompaniju
             </h2>
-            <p style={{ color: '#94a3b8', marginBottom: 28 }}>
+            <p style={{ color: '#94a3b8', marginBottom: 28, fontSize: isMobile ? 14 : 16 }}>
               Dobijte pristup svim naprednim funkcijama praćenja plovila.
             </p>
-            <Link to="/register" style={{ ...primaryBtnStyle, fontSize: 16, padding: '14px 32px' }}>
+            <Link to="/register" style={{ ...primaryBtnStyle, fontSize: 16, padding: '14px 28px' }}>
               Registrirajte se →
             </Link>
           </section>
@@ -179,7 +194,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer style={{
         textAlign: 'center',
-        padding: '24px 32px',
+        padding: isMobile ? '20px 16px' : '24px 32px',
         color: '#475569',
         fontSize: 13,
         borderTop: '1px solid rgba(255,255,255,0.06)',
