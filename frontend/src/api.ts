@@ -83,7 +83,8 @@ export async function fetchLiveAtons() {
 
 export function createWebSocket(onMessage: (data: unknown) => void): WebSocket {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  const ws = new WebSocket(`${proto}://${location.host}/ws`);
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  const ws = new WebSocket(`${proto}://${location.host}${base}/ws`);
   ws.onmessage = (e) => {
     try {
       onMessage(JSON.parse(e.data));
