@@ -38,9 +38,7 @@ services:
   frontend_charter:
     build:
       context: .
-      dockerfile: Dockerfile.frontend
-      args:
-        APP_MODE: charter
+      dockerfile: Dockerfile.frontend.charter
     container_name: fleetbit_frontend_charter
     ports:
       - "8087:80"
