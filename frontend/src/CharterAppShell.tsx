@@ -8,12 +8,14 @@ import { VesselPanel } from './components/VesselPanel';
 import { StatsWidget } from './components/StatsWidget';
 import { ToastContainer, type ToastMessage } from './components/Toast';
 import { useAuth } from './AuthContext';
+import { useTheme } from './ThemeContext';
 
 let toastIdCounter = 1;
 
 export default function CharterAppShell() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
 
   const [vessels, setVessels] = useState<Map<number, VesselLive>>(new Map());
   const [selectedMmsi, setSelectedMmsi] = useState<number | null>(null);
@@ -208,6 +210,18 @@ export default function CharterAppShell() {
               </span>
             </>
           )}
+          <button
+            onClick={toggleTheme}
+            style={{
+              background: 'transparent',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-secondary)',
+              borderRadius: 6,
+              padding: '4px 8px',
+              fontSize: 13,
+              cursor: 'pointer',
+            }}
+          >{theme === 'dark' ? '☀' : '🌙'}</button>
           <button
             onClick={handleLogout}
             style={{

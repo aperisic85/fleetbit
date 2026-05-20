@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { MapContainer, TileLayer, ZoomControl } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 import type { AtonLive } from '../types';
 import { fetchLiveAtons } from '../api';
 import { AtonMarker } from '../components/AtonMarker';
