@@ -1,8 +1,16 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { resolve } from 'path'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      input: mode === 'aton'
+        ? resolve(__dirname, 'aton.html')
+        : resolve(__dirname, 'index.html'),
+    },
+  },
   server: {
     port: 5173,
     proxy: {
@@ -10,4 +18,4 @@ export default defineConfig({
       '/ws': { target: 'ws://localhost:3001', ws: true },
     },
   },
-})
+}))
