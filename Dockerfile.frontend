@@ -4,7 +4,8 @@ WORKDIR /app
 COPY frontend/package*.json ./
 RUN npm ci
 COPY frontend/ ./
-RUN npm run build:${APP_MODE}
+RUN npm run build:${APP_MODE} && \
+    if [ "${APP_MODE}" = "aton" ]; then mv dist/aton.html dist/index.html; fi
 
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
