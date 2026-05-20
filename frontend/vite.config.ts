@@ -2,11 +2,9 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 
-const base = mode === 'aton' ? '/msg21/' : mode === 'charter' ? '/fleet/' : '/'
-
 export default defineConfig(({ mode }) => ({
   plugins: [react()],
-  base,
+  base: mode === 'aton' ? '/msg21/' : mode === 'charter' ? '/fleet/' : '/',
   build: {
     rollupOptions: {
       input: mode === 'aton'
