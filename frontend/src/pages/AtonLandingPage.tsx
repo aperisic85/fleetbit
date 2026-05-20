@@ -1,8 +1,16 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 
 export default function AtonLandingPage() {
   const { isAuthenticated, user } = useAuth();
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   return (
     <div style={{
@@ -12,13 +20,14 @@ export default function AtonLandingPage() {
       fontFamily: 'system-ui, sans-serif',
       display: 'flex',
       flexDirection: 'column',
+      overflowX: 'hidden',
     }}>
       {/* Navigacijska traka */}
       <nav style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '16px 32px',
+        padding: isMobile ? '12px 16px' : '16px 32px',
         borderBottom: '1px solid rgba(255,255,255,0.08)',
         backdropFilter: 'blur(8px)',
         position: 'sticky',
@@ -27,27 +36,33 @@ export default function AtonLandingPage() {
         background: 'rgba(15,23,42,0.8)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 26 }}>⚓</span>
-          <span style={{ fontWeight: 700, fontSize: 20, letterSpacing: '-0.01em' }}>
+          <span style={{ fontSize: isMobile ? 22 : 26 }}>⚓</span>
+          <span style={{ fontWeight: 700, fontSize: isMobile ? 17 : 20, letterSpacing: '-0.01em' }}>
             Fleet<span style={{ color: '#38bdf8' }}>bit</span>
-            <span style={{ color: '#94a3b8', fontWeight: 400, fontSize: 14, marginLeft: 8 }}>AIS Aton</span>
+            {!isMobile && (
+              <span style={{ color: '#94a3b8', fontWeight: 400, fontSize: 14, marginLeft: 8 }}>AIS Aton</span>
+            )}
           </span>
         </div>
 
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: isMobile ? 8 : 12, alignItems: 'center' }}>
           {isAuthenticated ? (
             <>
-              <span style={{ color: '#94a3b8', fontSize: 13 }}>
-                {user?.email}
-              </span>
+              {!isMobile && (
+                <span style={{ color: '#94a3b8', fontSize: 13 }}>
+                  {user?.email}
+                </span>
+              )}
               <Link to="/app" style={primaryBtnStyle}>
-                Otvori aplikaciju
+                Otvori nadzor
               </Link>
             </>
           ) : (
-            <Link to="/login" style={primaryBtnStyle}>
-              Prijava
-            </Link>
+            <>
+              <Link to="/login" style={primaryBtnStyle}>
+                Prijava
+              </Link>
+            </>
           )}
         </div>
       </nav>
@@ -57,8 +72,8 @@ export default function AtonLandingPage() {
         <section style={{
           maxWidth: 900,
           width: '100%',
-          margin: '80px auto 60px',
-          padding: '0 32px',
+          margin: isMobile ? '40px auto 32px' : '80px auto 60px',
+          padding: isMobile ? '0 16px' : '0 32px',
           textAlign: 'center',
         }}>
           <div style={{
@@ -76,7 +91,7 @@ export default function AtonLandingPage() {
           </div>
 
           <h1 style={{
-            fontSize: 'clamp(36px, 6vw, 64px)',
+            fontSize: 'clamp(28px, 6vw, 64px)',
             fontWeight: 800,
             lineHeight: 1.1,
             marginBottom: 24,
@@ -88,32 +103,31 @@ export default function AtonLandingPage() {
           </h1>
 
           <p style={{
-            fontSize: 18,
+            fontSize: isMobile ? 16 : 18,
             color: '#94a3b8',
             maxWidth: 600,
             margin: '0 auto 40px',
             lineHeight: 1.6,
           }}>
-            Fleetbit AIS Aton platforma pruža kontinuiran nadzor svjetionika,
-            plutača i ostalih pomoćnih plovnih oznaka. Alarmi, svjetlosni status
-            i RACON — sve na jednom mjestu.
+            Specijalizirana platforma za nadzor plovnih oznaka namijenjena lučkim kapetanijama,
+            Plovputu i ostalim nadležnim tijelima. Alarmi, svjetlosni status i RACON — sve na jednom mjestu.
           </p>
 
-          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             {isAuthenticated ? (
-              <Link to="/app" style={{ ...primaryBtnStyle, fontSize: 16, padding: '14px 32px' }}>
+              <Link to="/app" style={{ ...primaryBtnStyle, fontSize: 16, padding: '14px 28px' }}>
                 Otvori nadzornu ploču →
               </Link>
             ) : (
               <>
-                <Link to="/login" style={{ ...primaryBtnStyle, fontSize: 16, padding: '14px 32px' }}>
+                <Link to="/login" style={{ ...primaryBtnStyle, fontSize: 16, padding: '14px 28px' }}>
                   Prijavi se →
                 </Link>
                 <Link to="/live" style={{
                   color: '#cbd5e1',
                   textDecoration: 'none',
                   fontSize: 16,
-                  padding: '14px 32px',
+                  padding: '14px 28px',
                   border: '1px solid rgba(255,255,255,0.15)',
                   borderRadius: 8,
                 }}>
@@ -129,17 +143,17 @@ export default function AtonLandingPage() {
           maxWidth: 1100,
           width: '100%',
           margin: '0 auto 80px',
-          padding: '0 32px',
+          padding: isMobile ? '0 16px' : '0 32px',
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: 24,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gap: 20,
         }}>
           {features.map((f) => (
             <div key={f.title} style={{
               background: 'rgba(255,255,255,0.04)',
               border: '1px solid rgba(255,255,255,0.08)',
               borderRadius: 12,
-              padding: 28,
+              padding: isMobile ? 20 : 28,
             }}>
               <div style={{ fontSize: 32, marginBottom: 12 }}>{f.icon}</div>
               <h3 style={{ fontSize: 17, fontWeight: 600, marginBottom: 8 }}>{f.title}</h3>
@@ -154,19 +168,31 @@ export default function AtonLandingPage() {
           background: 'rgba(56,189,248,0.06)',
           borderTop: '1px solid rgba(56,189,248,0.15)',
           borderBottom: '1px solid rgba(56,189,248,0.15)',
-          padding: '60px 32px',
+          padding: isMobile ? '40px 16px' : '60px 32px',
           textAlign: 'center',
         }}>
-          <h2 style={{ fontSize: 28, fontWeight: 700, marginBottom: 12 }}>
+          <h2 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 700, marginBottom: 12 }}>
             Sigurnost plovidbe počinje s pouzdanim oznakama
           </h2>
-          <p style={{ color: '#94a3b8', marginBottom: 28 }}>
-            Svaki alarm na plovnoj oznaci vidljiv je odmah — s poviješću statusa i točnom pozicijom.
+          <p style={{ color: '#94a3b8', marginBottom: 28, fontSize: isMobile ? 14 : 16, maxWidth: 560, margin: '0 auto 28px' }}>
+            Svaki alarm na plovnoj oznaci vidljiv je odmah — s poviješću statusa i točnom pozicijom na karti.
           </p>
           {!isAuthenticated && (
-            <Link to="/register" style={{ ...primaryBtnStyle, fontSize: 16, padding: '14px 32px' }}>
-              Registrirajte se →
-            </Link>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Link to="/login" style={{ ...primaryBtnStyle, fontSize: 16, padding: '14px 28px' }}>
+                Prijavi se →
+              </Link>
+              <Link to="/register" style={{
+                color: '#cbd5e1',
+                textDecoration: 'none',
+                fontSize: 16,
+                padding: '14px 28px',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: 8,
+              }}>
+                Zatražite pristup
+              </Link>
+            </div>
           )}
         </section>
       </main>
@@ -174,7 +200,7 @@ export default function AtonLandingPage() {
       {/* Footer */}
       <footer style={{
         textAlign: 'center',
-        padding: '24px 32px',
+        padding: isMobile ? '20px 16px' : '24px 32px',
         color: '#475569',
         fontSize: 13,
         borderTop: '1px solid rgba(255,255,255,0.06)',
@@ -200,17 +226,17 @@ const features = [
   {
     icon: '🔴',
     title: 'Alarm nadzor',
-    desc: 'Trenutačna obavijest o svakom alarmu na plovnoj oznaci. Crveni, žuti i zeleni status za brz pregled situacije.',
+    desc: 'Trenutačna obavijest o svakom alarmu na plovnoj oznaci. Crveni, žuti i zeleni status za brz pregled stanja.',
   },
   {
     icon: '💡',
     title: 'Status svjetla',
-    desc: 'Praćenje rada svjetioničkih svjetala u realnom vremenu — uključeno, isključeno ili kvar.',
+    desc: 'Praćenje rada svjetioničkih svjetala u realnom vremenu — uključeno, isključeno ili kvar u radu.',
   },
   {
     icon: '📡',
     title: 'RACON nadzor',
-    desc: 'Stanje RACON radarskih transpondera: operativno, nenadzirano ili greška.',
+    desc: 'Stanje RACON radarskih transpondera: operativno, nenadzirano ili greška — vidljivo odmah.',
   },
   {
     icon: '📍',
@@ -220,11 +246,11 @@ const features = [
   {
     icon: '🗺️',
     title: 'Interaktivna karta',
-    desc: 'Sve AtoN oznake prikazane na pomorskoj karti s bojama prema statusu. Kliknite za detalje.',
+    desc: 'Sve AtoN oznake prikazane na pomorskoj karti s bojama prema statusu. Pritisnite za detalje.',
   },
   {
     icon: '📊',
     title: 'Pregled po kategorijama',
-    desc: 'Filtriranje po tipu oznake, zdravstvenom statusu i geografskom području.',
+    desc: 'Filtriranje po tipu oznake, zdravstvenom statusu i geografskom području u nadležnosti.',
   },
 ];

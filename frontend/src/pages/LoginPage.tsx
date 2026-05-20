@@ -39,7 +39,7 @@ export default function LoginPage() {
             </span>
           </Link>
           <p style={{ color: '#64748b', fontSize: 14, marginTop: 8 }}>
-            Prijavite se u svoje račun
+            Prijavite se u svoj račun
           </p>
         </div>
 
