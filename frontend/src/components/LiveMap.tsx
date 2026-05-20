@@ -6,6 +6,7 @@ import type { VesselLive, TrackPoint } from '../types';
 import { VesselMarker } from './VesselMarker';
 import { ClusterMarker } from './ClusterMarker';
 import { HeatmapLayer } from './HeatmapLayer';
+import { useTheme } from '../ThemeContext';
 
 interface Props {
   vessels: VesselLive[];
@@ -190,6 +191,11 @@ function MapContent({ vessels, selectedMmsi, track, onSelect, showHeatmap }: Pro
 
 export function LiveMap({ vessels, selectedMmsi, track, onSelect }: Props) {
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const { theme } = useTheme();
+
+  const tileUrl = theme === 'dark'
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -202,7 +208,7 @@ export function LiveMap({ vessels, selectedMmsi, track, onSelect }: Props) {
         <ZoomControl position="topright" />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url={tileUrl}
           subdomains="abcd"
           maxZoom={19}
         />

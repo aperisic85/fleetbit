@@ -66,6 +66,14 @@ function FlyToAton({ aton }: { aton: AtonLive | null }) {
   return null;
 }
 
+function MapInvalidator() {
+  const map = useMap();
+  useEffect(() => {
+    setTimeout(() => map.invalidateSize(), 100);
+  }, [map]);
+  return null;
+}
+
 interface Props {
   atons: AtonLive[];
   loading: boolean;
@@ -250,6 +258,7 @@ export function AtonView({ atons, loading, onBack }: Props) {
         >
           <TileLayer url={tileUrl} attribution="© CartoDB" />
           <ZoomControl position="bottomright" />
+          <MapInvalidator />
           <FlyToAton aton={selectedAton} />
           {mapAtons.map(a => (
             <AtonMarker
