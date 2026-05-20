@@ -105,9 +105,21 @@ export default function AtonLandingPage() {
                 Otvori nadzornu ploču →
               </Link>
             ) : (
-              <Link to="/login" style={{ ...primaryBtnStyle, fontSize: 16, padding: '14px 32px' }}>
-                Prijavi se →
-              </Link>
+              <>
+                <Link to="/login" style={{ ...primaryBtnStyle, fontSize: 16, padding: '14px 32px' }}>
+                  Prijavi se →
+                </Link>
+                <Link to="/live" style={{
+                  color: '#cbd5e1',
+                  textDecoration: 'none',
+                  fontSize: 16,
+                  padding: '14px 32px',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: 8,
+                }}>
+                  Pogledaj kartu
+                </Link>
+              </>
             )}
           </div>
         </section>
@@ -152,8 +164,8 @@ export default function AtonLandingPage() {
             Svaki alarm na plovnoj oznaci vidljiv je odmah — s poviješću statusa i točnom pozicijom.
           </p>
           {!isAuthenticated && (
-            <Link to="/login" style={{ ...primaryBtnStyle, fontSize: 16, padding: '14px 32px' }}>
-              Prijavi se →
+            <Link to="/register" style={{ ...primaryBtnStyle, fontSize: 16, padding: '14px 32px' }}>
+              Registrirajte se →
             </Link>
           )}
         </section>
