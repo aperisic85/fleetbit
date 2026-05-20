@@ -17,6 +17,8 @@ export default defineConfig(({ mode }) => ({
     proxy: {
       '/api': { target: 'http://localhost:3001', changeOrigin: true },
       '/ws': { target: 'ws://localhost:3001', ws: true },
+      '/msg21/ws': { target: 'ws://localhost:3001', ws: true },
+      '/fleet/ws': { target: 'ws://localhost:3001', ws: true },
     },
   },
 }))
