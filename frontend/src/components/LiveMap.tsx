@@ -101,6 +101,12 @@ function AnimatedTrack({ positions }: { positions: [number, number][] }) {
       void el.getBoundingClientRect();
       el.style.transition = 'stroke-dashoffset 1.8s cubic-bezier(0.4, 0, 0.2, 1)';
       el.style.strokeDashoffset = '0';
+      // Nakon animacije ukloni dash — inače zoom/pan mijenja duljinu patha i nastaju rupe
+      setTimeout(() => {
+        el.style.transition = 'none';
+        el.style.strokeDasharray = '';
+        el.style.strokeDashoffset = '';
+      }, 1900);
     });
   }, [positions]);
 

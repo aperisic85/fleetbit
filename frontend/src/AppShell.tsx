@@ -30,7 +30,6 @@ export default function AppShell() {
   const [atonsLoading, setAtonsLoading] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const prevWsStatus = useRef<string>('connecting');
-  const lastVesselToastRef = useRef<number>(0);
 
   const addToast = useCallback((text: string, type: ToastMessage['type'] = 'info') => {
     const id = toastIdCounter++;
@@ -96,17 +95,6 @@ export default function AppShell() {
           setVessels((prev) => {
             const updated = new Map(prev).set(pos.mmsi, { ...prev.get(pos.mmsi), ...pos });
             return updated;
-          });
-          setSelectedMmsi((sel) => {
-            if (sel === pos.mmsi) {
-              const now = Date.now();
-              if (now - lastVesselToastRef.current > 4000) {
-                lastVesselToastRef.current = now;
-                const name = pos.name ?? `MMSI ${pos.mmsi}`;
-                addToast(`Pozicija ažurirana: ${name}`, 'info');
-              }
-            }
-            return sel;
           });
         }
       });
