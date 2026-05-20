@@ -52,9 +52,7 @@ services:
   frontend_aton:
     build:
       context: .
-      dockerfile: Dockerfile.frontend
-      args:
-        APP_MODE: aton
+      dockerfile: Dockerfile.frontend.aton
     container_name: fleetbit_frontend_aton
     ports:
       - "8088:80"
