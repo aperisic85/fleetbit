@@ -21,7 +21,7 @@ function statusLabel(v: VesselLive): string {
 }
 
 function buildIcon(v: VesselLive, selected: boolean) {
-  const angle = (v.cog ?? v.heading ?? 0) - 180;
+  const angle = (v.cog ?? v.heading ?? 0);
   const color  = selected ? '#ef4444' : vesselColor(v);
   const size   = selected ? 22 : 18;
   const half   = size / 2;
