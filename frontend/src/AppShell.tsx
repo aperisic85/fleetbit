@@ -151,9 +151,22 @@ export default function AppShell() {
   }, [vesselList, filter]);
 
   const mapVessels = useMemo(() => {
-    const cutoff = Date.now() - 5 * 60 * 1000;
+    const cutoff = Date.now() - 2 * 60 * 1000;
     return filteredVessels.filter(v => v.last_seen != null && new Date(v.last_seen).getTime() >= cutoff);
   }, [filteredVessels]);
+
+  const liveTrack = useMemo(() => {
+    if (selectedMmsi == null) return track;
+    const vessel = vessels.get(selectedMmsi);
+    if (!vessel?.lat || !vessel?.lon || !vessel?.last_seen) return track;
+    const liveTime = new Date(vessel.last_seen).getTime();
+    const filtered = track.filter(p => new Date(p.time).getTime() <= liveTime);
+    const last = filtered[filtered.length - 1];
+    if (!last || new Date(last.time).getTime() < liveTime) {
+      return [...filtered, { time: vessel.last_seen, mmsi: vessel.mmsi, lat: vessel.lat, lon: vessel.lon, sog: vessel.sog, cog: vessel.cog }];
+    }
+    return filtered;
+  }, [track, selectedMmsi, vessels]);
 
   const handleSelect = (mmsi: number) => {
     setSelectedMmsi(mmsi);
@@ -332,7 +345,7 @@ export default function AppShell() {
           <LiveMap
             vessels={mapVessels}
             selectedMmsi={selectedMmsi}
-            track={track}
+            track={liveTrack}
             onSelect={handleSelect}
           />
 
