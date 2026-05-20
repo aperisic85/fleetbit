@@ -84,18 +84,21 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', marginTop: 24, fontSize: 14, color: '#64748b' }}>
-          Nemate račun?{' '}
-          <Link to="/register" style={{ color: '#38bdf8', textDecoration: 'none', fontWeight: 600 }}>
-            Registrirajte se
-          </Link>
-        </p>
-
-        <p style={{ textAlign: 'center', marginTop: 12, fontSize: 14, color: '#64748b' }}>
-          <Link to="/live" style={{ color: '#64748b', textDecoration: 'none' }}>
-            ← Pogledaj kartu kao gost
-          </Link>
-        </p>
+        {import.meta.env.VITE_APP_MODE !== 'aton' && (
+          <>
+            <p style={{ textAlign: 'center', marginTop: 24, fontSize: 14, color: '#64748b' }}>
+              Nemate račun?{' '}
+              <Link to="/register" style={{ color: '#38bdf8', textDecoration: 'none', fontWeight: 600 }}>
+                Registrirajte se
+              </Link>
+            </p>
+            <p style={{ textAlign: 'center', marginTop: 12, fontSize: 14, color: '#64748b' }}>
+              <Link to="/live" style={{ color: '#64748b', textDecoration: 'none' }}>
+                ← Pogledaj kartu kao gost
+              </Link>
+            </p>
+          </>
+        )}
       </div>
     </div>
   );
