@@ -51,6 +51,11 @@ function AtonListItem({
           {aton.alarm && <span style={{ fontSize: 9, color: '#ef4444', fontWeight: 700 }}>⚠ ALARM</span>}
           {aton.off_position && <span style={{ fontSize: 9, color: '#f59e0b' }}>VAN POZ.</span>}
           {aton.virtual_aid && <span style={{ fontSize: 9, color: '#8b5cf6' }}>VIRT.</span>}
+          {aton.wind_speed != null && (
+            <span style={{ fontSize: 9, color: 'var(--text-secondary)' }}>
+              {aton.wind_speed.toFixed(0)} kn{aton.air_temp != null ? ` · ${aton.air_temp.toFixed(0)}°C` : ''}
+            </span>
+          )}
         </div>
       </div>
     </div>
