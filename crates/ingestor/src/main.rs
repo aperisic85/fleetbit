@@ -31,8 +31,8 @@ async fn main() -> Result<()> {
 
     info!("Connected to database");
 
-    // Config sa stanicama
-    let config = IngestorConfig::default();
+    // Config sa stanicama — čita stations.toml ili fallback na defaults
+    let config = IngestorConfig::load();
 
     // Channel — ingestor šalje, db writer prima
     let (pos_tx, mut pos_rx) = mpsc::channel::<PositionUpdate>(10_000);
