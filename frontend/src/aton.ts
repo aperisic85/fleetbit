@@ -6,7 +6,7 @@ import type { AtonLive } from './types';
 //   bits 4-3: racon_status (2 bita)
 
 export const LIGHT_STATUS: Record<number, { label: string; color: string }> = {
-  0: { label: 'Nije praćeno', color: '#64748b' },
+  0: { label: 'Ne nadzire se', color: '#64748b' },
   1: { label: 'Upaljeno',     color: '#f59e0b' },
   2: { label: 'Ugašeno',      color: '#94a3b8' },
   3: { label: 'Greška',       color: '#f97316' },

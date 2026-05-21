@@ -66,7 +66,7 @@ export function AtonPanel({ aton, onClose }: Props) {
       {/* Alarmi */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
         {aton.alarm && <StatusBadge label="⚠ ALARM" color="#ef4444" />}
-        {aton.off_position && <StatusBadge label="⚓ Van pozicije" color="#f59e0b" />}
+        {aton.off_position && <StatusBadge label="⚓ Izvan pozicije" color="#f59e0b" />}
         {aton.virtual_aid && <StatusBadge label="Virtualni AtoN" color="#8b5cf6" />}
         {!aton.alarm && !aton.off_position && health === 'ok' && (
           <StatusBadge label="✓ Sve uredno" color="#22c55e" />
