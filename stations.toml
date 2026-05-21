@@ -1,0 +1,25 @@
+[[stations]]
+id   = 1
+name = "Labinstica"
+addr = "192.168.55.161:4712"
+
+[[stations]]
+id   = 2
+name = "VDG"
+addr = "192.168.52.161:4712"
+
+[[stations]]
+id   = 3
+name = "Ucka"
+addr = "192.168.61.161:4712"
+
+[[stations]]
+id   = 4
+name = "Osor"
+addr = "192.168.66.161:4712"
+
+# Dodajte nove stanice ispod ovog komentara:
+# [[stations]]
+# id   = 5
+# name = "Nova stanica"
+# addr = "192.168.XX.YYY:4712"
