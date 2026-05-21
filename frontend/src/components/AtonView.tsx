@@ -57,13 +57,22 @@ function AtonListItem({
   );
 }
 
-function FlyToAton({ aton }: { aton: AtonLive | null }) {
+function FlyToAton({ aton, isMobile }: { aton: AtonLive | null; isMobile: boolean }) {
   const map = useMap();
   useEffect(() => {
     if (aton?.lat != null && aton?.lon != null) {
-      map.flyTo([aton.lat, aton.lon], Math.max(map.getZoom(), 12), { duration: 1.2 });
+      const zoom = Math.max(map.getZoom(), 12);
+      if (isMobile) {
+        const targetPoint = map.project([aton.lat, aton.lon], zoom);
+        // Compensate for the bottom sheet (~65vh) so the marker lands above it
+        const offset = map.getSize().y * 0.3;
+        const adjustedCenter = map.unproject(targetPoint.add([0, offset]), zoom);
+        map.flyTo(adjustedCenter, zoom, { duration: 1.2 });
+      } else {
+        map.flyTo([aton.lat, aton.lon], zoom, { duration: 1.2 });
+      }
     }
-  }, [aton, map]);
+  }, [aton, map, isMobile]);
   return null;
 }
 
@@ -86,6 +95,7 @@ export function AtonView({ atons, loading, onBack }: Props) {
   const [healthFilter, setHealthFilter] = useState<HealthFilter>('all');
   const [search, setSearch] = useState('');
   const [isMobile] = useState(() => window.innerWidth <= 768);
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 768);
   const { theme, toggleTheme } = useTheme();
 
   const selectedAton = selectedMmsi != null ? atons.find(a => a.mmsi === selectedMmsi) ?? null : null;
@@ -131,18 +141,38 @@ export function AtonView({ atons, loading, onBack }: Props) {
       height: '100%',
       fontFamily: 'system-ui, sans-serif',
       overflow: 'hidden',
+      position: 'relative',
     }}>
+
+      {/* Mobile backdrop */}
+      {isMobile && sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 1040,
+          }}
+        />
+      )}
 
       {/* Lijeva bočna traka */}
       <div style={{
-        width: isMobile ? '100%' : 260,
+        ...(isMobile ? {
+          position: 'absolute',
+          top: 0,
+          left: sidebarOpen ? 0 : -280,
+          height: '100%',
+          zIndex: 1050,
+          transition: 'left 0.25s ease',
+        } : {}),
+        width: 260,
         flexShrink: 0,
         display: 'flex',
         flexDirection: 'column',
         background: 'var(--bg-surface)',
         borderRight: '1px solid var(--border-color)',
-        zIndex: 10,
-        ...(isMobile && selectedMmsi != null ? { display: 'none' } : {}),
       }}>
         {/* Header */}
         <div style={{ padding: '12px 12px 8px', borderBottom: '1px solid var(--border-color)' }}>
@@ -230,7 +260,10 @@ export function AtonView({ atons, loading, onBack }: Props) {
               key={a.mmsi}
               aton={a}
               selected={a.mmsi === selectedMmsi}
-              onClick={() => setSelectedMmsi(a.mmsi === selectedMmsi ? null : a.mmsi)}
+              onClick={() => {
+                setSelectedMmsi(a.mmsi === selectedMmsi ? null : a.mmsi);
+                if (isMobile) setSidebarOpen(false);
+              }}
             />
           ))}
         </div>
@@ -251,6 +284,29 @@ export function AtonView({ atons, loading, onBack }: Props) {
 
       {/* Karta — flex: 1 + minWidth: 0 + overflow: hidden daje Leafletu pravi prostor */}
       <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
+        {isMobile && (
+          <button
+            onClick={() => setSidebarOpen(s => !s)}
+            style={{
+              position: 'fixed',
+              top: 52,
+              left: 12,
+              zIndex: 9999,
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-primary)',
+              borderRadius: 6,
+              padding: '8px 12px',
+              fontSize: 18,
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+              lineHeight: 1,
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            ☰
+          </button>
+        )}
         <MapContainer
           center={[44.5, 15.0]}
           zoom={8}
@@ -260,7 +316,7 @@ export function AtonView({ atons, loading, onBack }: Props) {
           <TileLayer url={tileUrl} attribution="© CartoDB" />
           <ZoomControl position="bottomright" />
           <MapInvalidator />
-          <FlyToAton aton={selectedAton} />
+          <FlyToAton aton={selectedAton} isMobile={isMobile} />
           {mapAtons.map(a => (
             <AtonMarker
               key={a.mmsi}
