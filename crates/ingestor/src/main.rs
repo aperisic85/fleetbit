@@ -11,9 +11,9 @@ use tracing::info;
 
 use config::IngestorConfig;
 use shared::db::pool::create_pool;
-use shared::db::queries::atons::upsert_aton;
+use shared::db::queries::atons::{upsert_aton, upsert_meteo};
 use shared::db::queries::vessels::{insert_position, upsert_vessel_static};
-use shared::models::aton::AtonUpdate;
+use shared::models::aton::{AtonUpdate, MeteoUpdate};
 use shared::models::vessel::{PositionUpdate, StaticUpdate};
 
 #[tokio::main]
@@ -34,19 +34,21 @@ async fn main() -> Result<()> {
     // Config sa stanicama — čita stations.toml ili fallback na defaults
     let config = IngestorConfig::load();
 
-    // Channel — ingestor šalje, db writer prima
-    let (pos_tx, mut pos_rx) = mpsc::channel::<PositionUpdate>(10_000);
+    // Channels — ingestor šalje, db writer prima
+    let (pos_tx, mut pos_rx)       = mpsc::channel::<PositionUpdate>(10_000);
     let (static_tx, mut static_rx) = mpsc::channel::<StaticUpdate>(1_000);
-    let (aton_tx, mut aton_rx) = mpsc::channel::<AtonUpdate>(1_000);
+    let (aton_tx, mut aton_rx)     = mpsc::channel::<AtonUpdate>(1_000);
+    let (meteo_tx, mut meteo_rx)   = mpsc::channel::<MeteoUpdate>(1_000);
 
     // Spawn task za svaku stanicu
     for station in config.stations {
-        let pos_tx = pos_tx.clone();
+        let pos_tx    = pos_tx.clone();
         let static_tx = static_tx.clone();
-        let aton_tx = aton_tx.clone();
+        let aton_tx   = aton_tx.clone();
+        let meteo_tx  = meteo_tx.clone();
 
         tokio::spawn(async move {
-            station::run(station, pos_tx, static_tx, aton_tx).await;
+            station::run(station, pos_tx, static_tx, aton_tx, meteo_tx).await;
         });
     }
 
@@ -70,12 +72,22 @@ async fn main() -> Result<()> {
         }
     });
 
-    // DB writer za AtoNe
+    // DB writer za AtoNe (tip 21)
     let pool_aton = pool.clone();
     tokio::spawn(async move {
         while let Some(update) = aton_rx.recv().await {
             if let Err(e) = upsert_aton(&pool_aton, &update).await {
                 tracing::error!("Failed to upsert AtoN: {}", e);
+            }
+        }
+    });
+
+    // DB writer za meteorološke podatke (tip 8, DAC 001, FI 31)
+    let pool_meteo = pool.clone();
+    tokio::spawn(async move {
+        while let Some(update) = meteo_rx.recv().await {
+            if let Err(e) = upsert_meteo(&pool_meteo, &update).await {
+                tracing::error!("Failed to upsert meteo: {}", e);
             }
         }
     });

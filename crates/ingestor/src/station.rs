@@ -1,6 +1,6 @@
 use crate::config::StationConfig;
 use crate::parser::{FleetbitParser, ParsedMessage};
-use shared::models::aton::AtonUpdate;
+use shared::models::aton::{AtonUpdate, MeteoUpdate};
 use shared::models::vessel::{PositionUpdate, StaticUpdate};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::net::TcpStream;
@@ -13,6 +13,7 @@ pub async fn run(
     pos_tx: Sender<PositionUpdate>,
     static_tx: Sender<StaticUpdate>,
     aton_tx: Sender<AtonUpdate>,
+    meteo_tx: Sender<MeteoUpdate>,
 ) {
     let mut attempt = 0u32;
 
@@ -31,6 +32,7 @@ pub async fn run(
                     pos_tx.clone(),
                     static_tx.clone(),
                     aton_tx.clone(),
+                    meteo_tx.clone(),
                 )
                 .await
                 {
@@ -59,6 +61,7 @@ async fn handle_stream(
     pos_tx: Sender<PositionUpdate>,
     static_tx: Sender<StaticUpdate>,
     aton_tx: Sender<AtonUpdate>,
+    meteo_tx: Sender<MeteoUpdate>,
 ) -> anyhow::Result<()> {
     let reader = BufReader::new(stream);
     let mut lines = reader.lines();
@@ -74,7 +77,7 @@ async fn handle_stream(
         match parser.parse_line(&line, station_id) {
             Some(ParsedMessage::Position(pos)) => {
                 if pos_tx.send(pos).await.is_err() {
-                    break; // Receiver dropan, izlazi
+                    break;
                 }
             }
             Some(ParsedMessage::Static(update)) => {
@@ -87,7 +90,12 @@ async fn handle_stream(
                     break;
                 }
             }
-            None => {} // Fragment ili nepoznata poruka
+            Some(ParsedMessage::Meteo(update)) => {
+                if meteo_tx.send(update).await.is_err() {
+                    break;
+                }
+            }
+            None => {}
         }
     }
 
