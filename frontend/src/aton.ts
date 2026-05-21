@@ -7,9 +7,9 @@ import type { AtonLive } from './types';
 
 export const LIGHT_STATUS: Record<number, { label: string; color: string }> = {
   0: { label: 'Nije praćeno', color: '#64748b' },
-  1: { label: 'Upaljeno',     color: '#22c55e' },
-  2: { label: 'Ugašeno',      color: '#ef4444' },
-  3: { label: 'Greška',       color: '#ef4444' },
+  1: { label: 'Upaljeno',     color: '#f59e0b' },
+  2: { label: 'Ugašeno',      color: '#94a3b8' },
+  3: { label: 'Greška',       color: '#f97316' },
 };
 
 export const RACON_STATUS: Record<number, { label: string; color: string }> = {
@@ -26,9 +26,9 @@ export function atonHealth(a: AtonLive): AtonHealth {
   if (a.alarm === null && a.light_status === null && a.racon_status === null) return 'unknown';
   if (a.alarm) return 'alarm';
   if (a.off_position) return 'alarm';
-  const lightFault = a.light_status != null && (a.light_status === 2 || a.light_status === 3);
+  const lightError = a.light_status != null && a.light_status === 3;
   const raconFault = a.racon_status != null && a.racon_status === 3;
-  if (lightFault || raconFault) return 'alarm';
+  if (lightError || raconFault) return 'warning';
   const raconUnmonitored = a.racon_status === 1;
   if (raconUnmonitored) return 'warning';
   return 'ok';
