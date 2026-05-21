@@ -306,49 +306,98 @@ fn sign_extend(val: u32, bits: u32) -> i32 {
     }
 }
 
-// ITU-R M.1371-4, Annex 8, Table 11 — DAC 001, FI 31
-// Meteorological and Hydrological data (276 bita od bita 0 u `data`).
+// SN.1/Circ.289 — DAC 001, FI 31, Meteorological and Hydrological data.
+// Aplikacijski podaci počinju na bitu 0 BinaryBroadcastMessage.data.
+//
+// Bit layout (ukupno ~306 bita aplikacijskih podataka):
+//  [  0: 24] Longitude          25 bita
+//  [ 25: 48] Latitude           24 bita
+//  [    49 ] Position Accuracy   1 bit
+//  [ 50: 54] Time Stamp          5 bita
+//  [ 55: 59] UTC Day             5 bita
+//  [ 60: 64] UTC Hour            5 bita
+//  [ 65: 70] UTC Minute          6 bita
+//  [ 71: 77] Wind Speed avg      7 bita  (kn, 127=N/A)
+//  [ 78: 84] Wind Gust           7 bita  (kn, 127=N/A)
+//  [ 85: 93] Wind Direction      9 bita  (°, 360=N/A)
+//  [ 94:102] Wind Gust Dir       9 bita
+//  [103:113] Air Temperature    11 bita  (×0.1°C, signed, -1024=N/A)
+//  [114:120] Humidity            7 bita  (%, 101=N/A)
+//  [121:130] Dew Point          10 bita  (×0.1°C, signed, 501=N/A)
+//  [131:139] Air Pressure        9 bita  (hPa, 511=N/A, 0=≤799, actual=raw+799)
+//  [140:141] Pressure Tendency   2 bita
+//  [142:149] Visibility          8 bita  (×0.1 nm, 127=N/A, max=12.6 nm)
+//  [150:161] Water Level        12 bita
+//  [162:163] Water Level Trend   2 bita
+//  [164:171] Curr Speed          8 bita
+//  [172:180] Curr Direction      9 bita
+//  [181:188] Curr Speed 2        8 bita
+//  [189:197] Curr Direction 2    9 bita
+//  [198:202] Curr Level 2        5 bita
+//  [203:210] Curr Speed 3        8 bita
+//  [211:219] Curr Direction 3    9 bita
+//  [220:224] Curr Level 3        5 bita
+//  [225:232] Wave Height         8 bita  (×0.1 m, 252+=N/A)
+//  [233:238] Wave Period         6 bita  (s, 61+=N/A)
+//  [239:247] Wave Direction      9 bita  (°, 360=N/A)
+//  [248:255] Swell Height        8 bita
+//  [256:261] Swell Period        6 bita
+//  [262:270] Swell Direction     9 bita
+//  [271:274] Sea State           4 bita
+//  [275:284] Water Temperature  10 bita  (×0.1°C, offset -10, 601=N/A)
+//  [285:287] Precipitation       3 bita
+//  [288:296] Salinity            9 bita
+//  [297:298] Ice                 2 bita
 fn decode_dfi31(mmsi: u32, data: &[u8]) -> Option<ParsedMessage> {
-    // Minimalno 35 bajtova (280 bita) da pokrije 276 bita aplikacijskih podataka
-    if data.len() < 35 {
+    // Minimalno 38 bajtova (304 bita) za sve relevantne fielove
+    if data.len() < 38 {
         return None;
     }
 
     let mut off = 0usize;
 
-    // Lat/Lon iz Type 8 ne koristimo — koristimo one iz Type 21
-    off += 17; // latitude
-    off += 18; // longitude
-    off += 5;  // UTC day
-    off += 5;  // UTC hour
-    off += 6;  // UTC minute
+    // Geografski i vremenski header — ne koristimo (pozicija dolazi iz Type 21)
+    off += 25; // Longitude
+    off += 24; // Latitude
+    off += 1;  // Position Accuracy
+    off += 5;  // Time Stamp
+    off += 5;  // UTC Day
+    off += 5;  // UTC Hour
+    off += 6;  // UTC Minute
+    // off = 71
 
     // Vjetar
     let wind_speed_raw = bits_get(data, off, 7); off += 7;
     let wind_gust_raw  = bits_get(data, off, 7); off += 7;
     let wind_dir_raw   = bits_get(data, off, 9); off += 9;
     off += 9; // wind gust direction
+    // off = 103
 
-    // Temperatura zraka — 11 bita, 2's complement, ×0.1°C, N/A = 0x400 (-1024 signed)
+    // Atmosfera
     let air_temp_raw  = bits_get(data, off, 11); off += 11;
     let humidity_raw  = bits_get(data, off, 7);  off += 7;
-    // Rosišna točka — 10 bita, 2's complement, ×0.1°C
     let dew_point_raw = bits_get(data, off, 10); off += 10;
-    // Tlak zraka — 9 bita unsigned, raw 0=N/A, actual = raw + 799 hPa
     let air_pres_raw  = bits_get(data, off, 9);  off += 9;
     off += 2;  // pressure tendency
-    // Vidljivost — 8 bita, ×0.1 nm, N/A = 255
+    // off = 142
+
+    // Vidljivost — 8 bita, ×0.1 nm, N/A = 127 (max valjano = 126 = 12.6 nm)
     let visibility_raw = bits_get(data, off, 8); off += 8;
-    off += 9;  // water level
+    // off = 150
+
+    off += 12; // water level (12 bita!)
     off += 2;  // water level trend
+    // off = 164
+
     off += 8;  // surface current speed
     off += 9;  // surface current direction
     off += 8;  // current speed 2
     off += 9;  // current direction 2
-    off += 5;  // current depth 2
+    off += 5;  // current measuring level 2
     off += 8;  // current speed 3
     off += 9;  // current direction 3
-    off += 5;  // current depth 3
+    off += 5;  // current measuring level 3
+    // off = 225
 
     // Valovi
     let wave_height_raw = bits_get(data, off, 8); off += 8;
@@ -358,44 +407,54 @@ fn decode_dfi31(mmsi: u32, data: &[u8]) -> Option<ParsedMessage> {
     off += 6;  // swell period
     off += 9;  // swell direction
     off += 4;  // sea state (Beaufort)
+    // off = 275
 
-    // Temperatura mora — 10 bita unsigned, offset 100 (×0.1°C - 10), N/A = 601
+    // Temperatura mora — 10 bita unsigned, raw 0=−10°C, raw 600=+50°C, 601=N/A
     let water_temp_raw = bits_get(data, off, 10); off += 10;
-    // Oborine — 3 bita (1=kiša, 2=grmljavina, 3=ledena kiša, 4=mješano, 5=snijeg, 7=N/A)
+    // Oborine — 3 bita (0=rezerv, 1=kiša, 2=grmlj., 3=led. kiša, 4=mješano, 5=snijeg, 7=N/A)
     let precip_raw = bits_get(data, off, 3);
-    let _ = off; // ostatak (salinity, ice) nije potreban
+    let _ = off;
 
-    // Konverzija uz N/A provjere
-    let wind_speed   = if wind_speed_raw >= 127 { None } else { Some(wind_speed_raw as f32) };
-    let wind_gust    = if wind_gust_raw  >= 127 { None } else { Some(wind_gust_raw as f32) };
-    let wind_dir     = if wind_dir_raw   >= 360 { None } else { Some(wind_dir_raw as i16) };
+    // Konverzija uz N/A provjere per SN.1/Circ.289
+    let wind_speed = if wind_speed_raw >= 127 { None } else { Some(wind_speed_raw as f32) };
+    let wind_gust  = if wind_gust_raw  >= 127 { None } else { Some(wind_gust_raw as f32) };
+    let wind_dir   = if wind_dir_raw   >= 360 { None } else { Some(wind_dir_raw as i16) };
 
     let air_temp = {
         let signed = sign_extend(air_temp_raw, 11);
-        if signed == -1024 { None } else { Some(signed as f32 / 10.0) }
+        if signed <= -1024 { None } else { Some(signed as f32 / 10.0) }
     };
 
     let humidity = if humidity_raw >= 101 { None } else { Some(humidity_raw as i16) };
 
     let dew_point = {
         let signed = sign_extend(dew_point_raw, 10);
-        // N/A ako je izvan realnog raspona (-20 do +50°C)
-        if signed > 500 || signed < -200 { None } else { Some(signed as f32 / 10.0) }
+        // N/A = 501 (signed), i sve iznad validnog raspona (-200 do +500 = -20 do +50°C)
+        if signed >= 501 || signed < -200 { None } else { Some(signed as f32 / 10.0) }
     };
 
-    let air_pressure = if air_pres_raw == 0 { None } else { Some((air_pres_raw + 799) as i16) };
-    let visibility   = if visibility_raw >= 255 { None } else { Some(visibility_raw as f32 / 10.0) };
+    // Air pressure: 511=N/A; 0="≤799 hPa"; 1-401=800-1200 hPa (actual=raw+799)
+    let air_pressure = if air_pres_raw == 0 || air_pres_raw >= 402 {
+        None
+    } else {
+        Some((air_pres_raw + 799) as i16)
+    };
 
+    // Visibility: 127=N/A, 128+=rezervirano, max valjano = 126 (12.6 nm)
+    let visibility = if visibility_raw >= 127 { None } else { Some(visibility_raw as f32 / 10.0) };
+
+    // Water temp: raw 0=−10°C, raw 600=+50°C, 601=N/A
     let water_temp = if water_temp_raw >= 601 {
         None
     } else {
         Some(water_temp_raw as f32 / 10.0 - 10.0)
     };
 
-    let wave_height = if wave_height_raw >= 255 { None } else { Some(wave_height_raw as f32 / 10.0) };
-    let wave_period = if wave_period_raw >= 63 { None } else { Some(wave_period_raw as i16) };
+    // Wave height: 252-254=rezerv., 255=N/A
+    let wave_height = if wave_height_raw >= 252 { None } else { Some(wave_height_raw as f32 / 10.0) };
+    let wave_period = if wave_period_raw >= 61 { None } else { Some(wave_period_raw as i16) };
     let wave_dir    = if wave_dir_raw    >= 360 { None } else { Some(wave_dir_raw as i16) };
-    let precipitation = if precip_raw == 0 || precip_raw == 7 { None } else { Some(precip_raw as i16) };
+    let precipitation = if precip_raw == 0 || precip_raw >= 6 { None } else { Some(precip_raw as i16) };
 
     Some(ParsedMessage::Meteo(MeteoUpdate {
         mmsi: mmsi as i32,
