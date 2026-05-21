@@ -307,47 +307,53 @@ fn sign_extend(val: u32, bits: u32) -> i32 {
 }
 
 // SN.1/Circ.289 — DAC 001, FI 31, Meteorological and Hydrological data.
-// Aplikacijski podaci počinju na bitu 0 BinaryBroadcastMessage.data.
+// Aplikacijski podaci počinju na bitu 0 BinaryBroadcastMessage.data
+// (odmah iza FID-a koji ais knjižnica parsira zasebno).
 //
-// Bit layout (ukupno ~306 bita aplikacijskih podataka):
+// Ukupno 360 bita poruke: 56 (AIS header+DAC+FID) + 304 (app data).
+// Napomena: "Time Stamp" polje od 5 bita koje se pojavljuje u nekim
+// dokumentima NE POSTOJI u stvarnom SN.1/Circ.289 standardu — bez tog
+// polja ukupno je točno 360 bita (Spare na kraju = 10 bita).
+//
+// Bit layout aplikacijskih podataka (ukupno 304 bita):
 //  [  0: 24] Longitude          25 bita
 //  [ 25: 48] Latitude           24 bita
 //  [    49 ] Position Accuracy   1 bit
-//  [ 50: 54] Time Stamp          5 bita
-//  [ 55: 59] UTC Day             5 bita
-//  [ 60: 64] UTC Hour            5 bita
-//  [ 65: 70] UTC Minute          6 bita
-//  [ 71: 77] Wind Speed avg      7 bita  (kn, 127=N/A)
-//  [ 78: 84] Wind Gust           7 bita  (kn, 127=N/A)
-//  [ 85: 93] Wind Direction      9 bita  (°, 360=N/A)
-//  [ 94:102] Wind Gust Dir       9 bita
-//  [103:113] Air Temperature    11 bita  (×0.1°C, signed, -1024=N/A)
-//  [114:120] Humidity            7 bita  (%, 101=N/A)
-//  [121:130] Dew Point          10 bita  (×0.1°C, signed, 501=N/A)
-//  [131:139] Air Pressure        9 bita  (hPa, 511=N/A, 0=≤799, actual=raw+799)
-//  [140:141] Pressure Tendency   2 bita
-//  [142:149] Visibility          8 bita  (×0.1 nm, 127=N/A, max=12.6 nm)
-//  [150:161] Water Level        12 bita
-//  [162:163] Water Level Trend   2 bita
-//  [164:171] Curr Speed          8 bita
-//  [172:180] Curr Direction      9 bita
-//  [181:188] Curr Speed 2        8 bita
-//  [189:197] Curr Direction 2    9 bita
-//  [198:202] Curr Level 2        5 bita
-//  [203:210] Curr Speed 3        8 bita
-//  [211:219] Curr Direction 3    9 bita
-//  [220:224] Curr Level 3        5 bita
-//  [225:232] Wave Height         8 bita  (×0.1 m, 252+=N/A)
-//  [233:238] Wave Period         6 bita  (s, 61+=N/A)
-//  [239:247] Wave Direction      9 bita  (°, 360=N/A)
-//  [248:255] Swell Height        8 bita
-//  [256:261] Swell Period        6 bita
-//  [262:270] Swell Direction     9 bita
-//  [271:274] Sea State           4 bita
-//  [275:284] Water Temperature  10 bita  (×0.1°C, offset -10, 601=N/A)
-//  [285:287] Precipitation       3 bita
-//  [288:296] Salinity            9 bita
-//  [297:298] Ice                 2 bita
+//  [ 50: 54] UTC Day             5 bita
+//  [ 55: 59] UTC Hour            5 bita
+//  [ 60: 65] UTC Minute          6 bita
+//  [ 66: 72] Wind Speed avg      7 bita  (kn, 127=N/A)
+//  [ 73: 79] Wind Gust           7 bita  (kn, 127=N/A)
+//  [ 80: 88] Wind Direction      9 bita  (°, 360=N/A)
+//  [ 89: 97] Wind Gust Dir       9 bita
+//  [ 98:108] Air Temperature    11 bita  (×0.1°C, signed, -1024=N/A)
+//  [109:115] Humidity            7 bita  (%, 101=N/A)
+//  [116:125] Dew Point          10 bita  (×0.1°C, signed, 501=N/A)
+//  [126:134] Air Pressure        9 bita  (hPa, 511=N/A, 0=≤799, actual=raw+799)
+//  [135:136] Pressure Tendency   2 bita
+//  [137:144] Visibility          8 bita  (×0.1 nm, bit7=MSB≥-indikator, 127(low7)=N/A)
+//  [145:156] Water Level        12 bita
+//  [157:158] Water Level Trend   2 bita
+//  [159:166] Curr Speed          8 bita
+//  [167:175] Curr Direction      9 bita
+//  [176:183] Curr Speed 2        8 bita
+//  [184:192] Curr Direction 2    9 bita
+//  [193:197] Curr Level 2        5 bita
+//  [198:205] Curr Speed 3        8 bita
+//  [206:214] Curr Direction 3    9 bita
+//  [215:219] Curr Level 3        5 bita
+//  [220:227] Wave Height         8 bita  (×0.1 m, 252+=N/A)
+//  [228:233] Wave Period         6 bita  (s, 61+=N/A)
+//  [234:242] Wave Direction      9 bita  (°, 360=N/A)
+//  [243:250] Swell Height        8 bita
+//  [251:256] Swell Period        6 bita
+//  [257:265] Swell Direction     9 bita
+//  [266:269] Sea State           4 bita
+//  [270:279] Water Temperature  10 bita  (×0.1°C, offset -10, 601=N/A)
+//  [280:282] Precipitation       3 bita
+//  [283:291] Salinity            9 bita
+//  [292:293] Ice                 2 bita
+//  [294:303] Spare              10 bita
 fn decode_dfi31(mmsi: u32, data: &[u8]) -> Option<ParsedMessage> {
     // Minimalno 38 bajtova (304 bita) za sve relevantne fielove
     if data.len() < 38 {
@@ -360,18 +366,17 @@ fn decode_dfi31(mmsi: u32, data: &[u8]) -> Option<ParsedMessage> {
     off += 25; // Longitude
     off += 24; // Latitude
     off += 1;  // Position Accuracy
-    off += 5;  // Time Stamp
     off += 5;  // UTC Day
     off += 5;  // UTC Hour
     off += 6;  // UTC Minute
-    // off = 71
+    // off = 66
 
     // Vjetar
     let wind_speed_raw = bits_get(data, off, 7); off += 7;
     let wind_gust_raw  = bits_get(data, off, 7); off += 7;
     let wind_dir_raw   = bits_get(data, off, 9); off += 9;
     off += 9; // wind gust direction
-    // off = 103
+    // off = 98
 
     // Atmosfera
     let air_temp_raw  = bits_get(data, off, 11); off += 11;
@@ -379,15 +384,15 @@ fn decode_dfi31(mmsi: u32, data: &[u8]) -> Option<ParsedMessage> {
     let dew_point_raw = bits_get(data, off, 10); off += 10;
     let air_pres_raw  = bits_get(data, off, 9);  off += 9;
     off += 2;  // pressure tendency
-    // off = 142
+    // off = 137
 
-    // Vidljivost — 8 bita, ×0.1 nm, N/A = 127 (max valjano = 126 = 12.6 nm)
+    // Vidljivost — 8 bita, ×0.1 nm; bit7=MSB≥-indikator, donjih 7 bita = vrijednost, 0x7F=N/A
     let visibility_raw = bits_get(data, off, 8); off += 8;
-    // off = 150
+    // off = 145
 
     off += 12; // water level (12 bita!)
     off += 2;  // water level trend
-    // off = 164
+    // off = 159
 
     off += 8;  // surface current speed
     off += 9;  // surface current direction
@@ -397,7 +402,7 @@ fn decode_dfi31(mmsi: u32, data: &[u8]) -> Option<ParsedMessage> {
     off += 8;  // current speed 3
     off += 9;  // current direction 3
     off += 5;  // current measuring level 3
-    // off = 225
+    // off = 220
 
     // Valovi
     let wave_height_raw = bits_get(data, off, 8); off += 8;
@@ -407,7 +412,7 @@ fn decode_dfi31(mmsi: u32, data: &[u8]) -> Option<ParsedMessage> {
     off += 6;  // swell period
     off += 9;  // swell direction
     off += 4;  // sea state (Beaufort)
-    // off = 275
+    // off = 270
 
     // Temperatura mora — 10 bita unsigned, raw 0=−10°C, raw 600=+50°C, 601=N/A
     let water_temp_raw = bits_get(data, off, 10); off += 10;
@@ -440,8 +445,12 @@ fn decode_dfi31(mmsi: u32, data: &[u8]) -> Option<ParsedMessage> {
         Some((air_pres_raw + 799) as i16)
     };
 
-    // Visibility: 127=N/A, 128+=rezervirano, max valjano = 126 (12.6 nm)
-    let visibility = if visibility_raw >= 127 { None } else { Some(visibility_raw as f32 / 10.0) };
+    // Visibility: MSB (bit 7) = "doseg senzora — stvarna vidljivost je ≥ ova vrijednost".
+    // Donje 7 bita daju vrijednost u 0.1 nm. 0x7F (127) u donjih 7 bita = N/A.
+    let visibility = {
+        let val = visibility_raw & 0x7F;
+        if val == 0x7F { None } else { Some(val as f32 / 10.0) }
+    };
 
     // Water temp: raw 0=−10°C, raw 600=+50°C, 601=N/A
     let water_temp = if water_temp_raw >= 601 {
