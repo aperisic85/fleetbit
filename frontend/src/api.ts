@@ -1,4 +1,4 @@
-const BASE = '/api/v1';
+const BASE = '/aisapi/v1';
 
 function getToken(): string | null {
   try {
