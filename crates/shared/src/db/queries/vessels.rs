@@ -74,6 +74,7 @@ pub async fn get_live_vessels(pool: &PgPool) -> Result<Vec<VesselLive>> {
             vp.time as last_seen
         FROM vessel_positions vp
         LEFT JOIN vessels v ON v.mmsi = vp.mmsi
+        WHERE vp.time > NOW() - INTERVAL '24 hours'
         ORDER BY vp.mmsi, vp.time DESC
         "#
     )
