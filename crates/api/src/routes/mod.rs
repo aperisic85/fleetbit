@@ -13,7 +13,7 @@ mod ws;
 pub fn router() -> Router<AppState> {
     Router::new()
         .nest(
-            "/api/v1",
+            "/aisapi/v1",
             Router::new()
                 // ── Auth (javne rute) ─────────────────────────────────────
                 .route("/auth/login", post(auth::login))
