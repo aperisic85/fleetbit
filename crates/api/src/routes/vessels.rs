@@ -40,9 +40,7 @@ pub async fn get_vessel(
     State(state): State<AppState>,
     Path(mmsi): Path<i32>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let vessel = db::get_vessel(&state.pool, mmsi)
-        .await?
-        .ok_or_else(|| ApiError::NotFound(format!("Brod s MMSI {mmsi} nije pronađen")))?;
+    let vessel = db::get_vessel(&state.pool, mmsi).await?;
 
     // Dohvati zadnju poziciju
     let live: Vec<_> = db::get_live_vessels(&state.pool)
@@ -52,6 +50,10 @@ pub async fn get_vessel(
         .collect();
 
     let last_position = live.into_iter().next();
+
+    if vessel.is_none() && last_position.is_none() {
+        return Err(ApiError::NotFound(format!("Brod s MMSI {mmsi} nije pronađen")));
+    }
 
     Ok(Json(serde_json::json!({
         "vessel": vessel,

@@ -25,7 +25,7 @@ export interface Vessel {
 }
 
 export interface VesselDetail {
-  vessel: Vessel;
+  vessel: Vessel | null;
   last_position: VesselLive | null;
 }
 

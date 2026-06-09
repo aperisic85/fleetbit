@@ -23,6 +23,15 @@ pub async fn insert_position(pool: &PgPool, pos: &PositionUpdate) -> Result<()> 
     )
     .execute(pool)
     .await?;
+
+    // Ensure a minimal vessel record exists so the detail panel can load
+    sqlx::query(
+        "INSERT INTO vessels (mmsi, last_seen) VALUES ($1, NOW()) ON CONFLICT (mmsi) DO NOTHING"
+    )
+    .bind(pos.mmsi)
+    .execute(pool)
+    .await?;
+
     Ok(())
 }
 
@@ -63,7 +72,7 @@ pub async fn get_live_vessels(pool: &PgPool) -> Result<Vec<VesselLive>> {
         VesselLive,
         r#"
         SELECT
-            vl.mmsi AS "mmsi!",
+            vl.mmsi,
             v.name,
             vl.lat,
             vl.lon,
@@ -71,7 +80,7 @@ pub async fn get_live_vessels(pool: &PgPool) -> Result<Vec<VesselLive>> {
             vl.cog,
             vl.heading,
             vl.nav_status,
-            vl.last_seen AS "last_seen!"
+            vl.last_seen
         FROM vessel_latest vl
         LEFT JOIN vessels v ON v.mmsi = vl.mmsi
         WHERE vl.last_seen > NOW() - INTERVAL '2 hours'

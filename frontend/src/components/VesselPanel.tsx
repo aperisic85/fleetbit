@@ -18,6 +18,32 @@ function Row({ label, value }: { label: string; value: string | number | null | 
   );
 }
 
+function shipTypeName(type: number | null | undefined): string | null {
+  if (type == null) return null;
+  if (type === 0) return null;
+  if (type >= 20 && type <= 28) return 'WIG';
+  if (type >= 30 && type <= 39) {
+    const names: Record<number, string> = {
+      30: 'Ribar', 31: 'Tegljač', 32: 'Tegljač', 33: 'Bager/Ronilac',
+      34: 'Ronilac', 35: 'Vojni', 36: 'Jedrilica', 37: 'Plovilo za razonodu',
+    };
+    return names[type] ?? 'Posebna namjena';
+  }
+  if (type >= 40 && type <= 49) return 'Brzi brod';
+  if (type >= 50 && type <= 59) {
+    const names: Record<number, string> = {
+      50: 'Pilot', 51: 'SAR', 52: 'Tegljač', 53: 'Lučki tender',
+      54: 'Protupožarni', 55: 'Policija', 58: 'Medicinska pomoć',
+    };
+    return names[type] ?? 'Posebna namjena';
+  }
+  if (type >= 60 && type <= 69) return 'Putnički brod';
+  if (type >= 70 && type <= 79) return 'Teretni brod';
+  if (type >= 80 && type <= 89) return 'Tanker';
+  if (type >= 90 && type <= 99) return 'Ostalo';
+  return String(type);
+}
+
 function formatLastSeen(ts: string | null | undefined): string {
   if (!ts) return '—';
   const date = new Date(ts);
@@ -112,7 +138,7 @@ export function VesselPanel({ mmsi, livePosition, onClose, isMobile }: Props) {
             </div>
             <Row label="IMO" value={vessel?.imo} />
             <Row label="Callsign" value={vessel?.callsign} />
-            <Row label="Tip plovila" value={vessel?.ship_type} />
+            <Row label="Tip plovila" value={shipTypeName(vessel?.ship_type)} />
             <Row label="Duljina" value={vessel?.length ? `${vessel.length} m` : null} />
             <Row label="Širina" value={vessel?.width ? `${vessel.width} m` : null} />
             <Row label="Gaz" value={vessel?.draught ? `${vessel.draught} m` : null} />
