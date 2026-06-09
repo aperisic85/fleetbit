@@ -139,13 +139,23 @@ export default function AppShell() {
     return vesselList;
   }, [vesselList, filter]);
 
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   const mapVessels = useMemo(() => {
-    if (selectedMmsi != null && !filteredVessels.some(v => v.mmsi === selectedMmsi)) {
+    const cutoff = now - 30 * 60 * 1000;
+    const fresh = filteredVessels.filter(
+      v => v.last_seen != null && new Date(v.last_seen).getTime() >= cutoff
+    );
+    if (selectedMmsi != null && !fresh.some(v => v.mmsi === selectedMmsi)) {
       const sel = vessels.get(selectedMmsi);
-      if (sel?.lat != null && sel?.lon != null) return [...filteredVessels, sel];
+      if (sel?.lat != null && sel?.lon != null) return [...fresh, sel];
     }
-    return filteredVessels;
-  }, [filteredVessels, selectedMmsi, vessels]);
+    return fresh;
+  }, [filteredVessels, selectedMmsi, vessels, now]);
 
   const liveTrack = useMemo(() => {
     if (selectedMmsi == null) return track;
