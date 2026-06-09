@@ -62,20 +62,19 @@ pub async fn get_live_vessels(pool: &PgPool) -> Result<Vec<VesselLive>> {
     let vessels = sqlx::query_as!(
         VesselLive,
         r#"
-        SELECT DISTINCT ON (vp.mmsi)
-            vp.mmsi,
+        SELECT
+            vl.mmsi,
             v.name,
-            vp.lat,
-            vp.lon,
-            vp.sog,
-            vp.cog,
-            vp.heading,
-            vp.nav_status,
-            vp.time as last_seen
-        FROM vessel_positions vp
-        LEFT JOIN vessels v ON v.mmsi = vp.mmsi
-        WHERE vp.time > NOW() - INTERVAL '24 hours'
-        ORDER BY vp.mmsi, vp.time DESC
+            vl.lat,
+            vl.lon,
+            vl.sog,
+            vl.cog,
+            vl.heading,
+            vl.nav_status,
+            vl.last_seen
+        FROM vessel_latest vl
+        LEFT JOIN vessels v ON v.mmsi = vl.mmsi
+        WHERE vl.last_seen > NOW() - INTERVAL '2 hours'
         "#
     )
     .fetch_all(pool)
