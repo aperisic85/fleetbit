@@ -141,19 +141,21 @@ export default function AppShell() {
 
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 60_000);
+    const id = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(id);
   }, []);
 
   const mapVessels = useMemo(() => {
-    const cutoff = now - 10 * 60 * 1000;
-    const base = filteredVessels.filter(v => v.last_seen != null && new Date(v.last_seen).getTime() >= cutoff);
-    if (selectedMmsi != null && !base.some(v => v.mmsi === selectedMmsi)) {
+    const cutoff = now - 30 * 60 * 1000;
+    const fresh = filteredVessels.filter(
+      v => v.last_seen != null && new Date(v.last_seen).getTime() >= cutoff
+    );
+    if (selectedMmsi != null && !fresh.some(v => v.mmsi === selectedMmsi)) {
       const sel = vessels.get(selectedMmsi);
-      if (sel?.lat != null && sel?.lon != null) return [...base, sel];
+      if (sel?.lat != null && sel?.lon != null) return [...fresh, sel];
     }
-    return base;
-  }, [filteredVessels, selectedMmsi, vessels]);
+    return fresh;
+  }, [filteredVessels, selectedMmsi, vessels, now]);
 
   const liveTrack = useMemo(() => {
     if (selectedMmsi == null) return track;
