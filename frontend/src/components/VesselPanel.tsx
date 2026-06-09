@@ -75,6 +75,9 @@ export function VesselPanel({ mmsi, livePosition, onClose, isMobile }: Props) {
 
   const live = livePosition;
 
+  // Koristi live podatke kao fallback kad statički podaci još nisu primljeni
+  const shipType = vessel?.ship_type ?? live?.ship_type;
+
   const mobileStyle: React.CSSProperties = {
     position: 'absolute',
     bottom: 0,
@@ -138,7 +141,7 @@ export function VesselPanel({ mmsi, livePosition, onClose, isMobile }: Props) {
             </div>
             <Row label="IMO" value={vessel?.imo} />
             <Row label="Callsign" value={vessel?.callsign} />
-            <Row label="Tip plovila" value={shipTypeName(vessel?.ship_type)} />
+            <Row label="Tip plovila" value={shipTypeName(shipType)} />
             <Row label="Duljina" value={vessel?.length ? `${vessel.length} m` : null} />
             <Row label="Širina" value={vessel?.width ? `${vessel.width} m` : null} />
             <Row label="Gaz" value={vessel?.draught ? `${vessel.draught} m` : null} />
