@@ -73,10 +73,10 @@ export function CameraOverlay() {
     );
   }
 
-  // AXIS MJPEG stream — živi feed bez pollinga
+  // AXIS MJPEG stream kroz nginx proxy (/camera/) — izbjegava CORS
   const streamUrl = imgError
     ? null
-    : `${CAMERA_URL}/axis-cgi/mjpg/video.cgi?resolution=${width}x${height}&compression=30`;
+    : `/camera/axis-cgi/mjpg/video.cgi?resolution=${width}x${height}&compression=30`;
 
   return (
     <div
