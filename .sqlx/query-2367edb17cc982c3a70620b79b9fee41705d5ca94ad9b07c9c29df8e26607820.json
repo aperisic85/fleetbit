@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            vl.mmsi,\n            v.name,\n            vl.lat,\n            vl.lon,\n            vl.sog,\n            vl.cog,\n            vl.heading,\n            vl.nav_status,\n            vl.last_seen\n        FROM vessel_latest vl\n        LEFT JOIN vessels v ON v.mmsi = vl.mmsi\n        WHERE vl.last_seen > NOW() - INTERVAL '2 hours'\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "mmsi",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "lat",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 3,
+        "name": "lon",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 4,
+        "name": "sog",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 5,
+        "name": "cog",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 6,
+        "name": "heading",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 7,
+        "name": "nav_status",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 8,
+        "name": "last_seen",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "2367edb17cc982c3a70620b79b9fee41705d5ca94ad9b07c9c29df8e26607820"
+}
