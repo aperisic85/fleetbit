@@ -18,8 +18,23 @@ id   = 4
 name = "Osor"
 addr = "192.168.66.161:4712"
 
-# Dodajte nove stanice ispod ovog komentara:
-# [[stations]]
-# id   = 5
-# name = "Nova stanica"
-# addr = "192.168.XX.YYY:4712"
+
+[[stations]]
+id   = 5
+name = "Ilijino Brdo"
+addr = "192.168.74.161:4712"
+
+[[stations]]
+id   = 6
+name = "Lastovo"
+addr = "192.168.73.161:4712"
+
+[[stations]]
+id   = 7
+name = "Savurija"
+addr = "192.168.64.161:4712"
+
+[[stations]]
+id   = 8
+name = "SvMihovil"
+addr = "192.168.55.161:4712"
