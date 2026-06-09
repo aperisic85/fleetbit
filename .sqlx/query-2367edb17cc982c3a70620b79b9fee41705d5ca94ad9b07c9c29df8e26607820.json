@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT DISTINCT ON (vp.mmsi)\n            vp.mmsi,\n            v.name,\n            vp.lat,\n            vp.lon,\n            vp.sog,\n            vp.cog,\n            vp.heading,\n            vp.nav_status,\n            vp.time as last_seen\n        FROM vessel_positions vp\n        LEFT JOIN vessels v ON v.mmsi = vp.mmsi\n        ORDER BY vp.mmsi, vp.time DESC\n        ",
+  "query": "\n        SELECT\n            vl.mmsi,\n            v.name,\n            vl.lat,\n            vl.lon,\n            vl.sog,\n            vl.cog,\n            vl.heading,\n            vl.nav_status,\n            vl.last_seen\n        FROM vessel_latest vl\n        LEFT JOIN vessels v ON v.mmsi = vl.mmsi\n        WHERE vl.last_seen > NOW() - INTERVAL '2 hours'\n        ",
   "describe": {
     "columns": [
       {
@@ -64,5 +64,5 @@
       false
     ]
   },
-  "hash": "13a2c21db054f844ef472203dd8ebd59e27cef61ce6f387c56fbf97a70fdbbaa"
+  "hash": "2367edb17cc982c3a70620b79b9fee41705d5ca94ad9b07c9c29df8e26607820"
 }
