@@ -34,7 +34,7 @@ pub struct Vessel {
 }
 
 /// Zadnja poznata pozicija broda — za live kartu
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct VesselLive {
     pub mmsi: i32,
     pub name: Option<String>,
@@ -44,7 +44,7 @@ pub struct VesselLive {
     pub cog: Option<f32>,
     pub heading: Option<i16>,
     pub nav_status: Option<i16>,
-    pub last_seen: Option<DateTime<Utc>>,
+    pub last_seen: DateTime<Utc>,
 }
 
 /// Payload koji ingestor šalje kroz channel prema DB writeru
