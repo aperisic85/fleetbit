@@ -6,7 +6,14 @@ import type { VesselLive, TrackPoint } from '../types';
 import { VesselMarker } from './VesselMarker';
 import { ClusterMarker } from './ClusterMarker';
 import { HeatmapLayer } from './HeatmapLayer';
+import { CameraOverlay } from './CameraOverlay';
 import { useTheme } from '../ThemeContext';
+
+const MAP_CENTER: [number, number] = [
+  parseFloat(import.meta.env.VITE_MAP_CENTER_LAT ?? '45.0'),
+  parseFloat(import.meta.env.VITE_MAP_CENTER_LON ?? '14.5'),
+];
+const MAP_ZOOM = parseInt(import.meta.env.VITE_MAP_CENTER_ZOOM ?? '7', 10);
 
 interface Props {
   vessels: VesselLive[];
@@ -150,7 +157,7 @@ function MapController({ vessels, selectedMmsi, mapResetKey }: { vessels: Vessel
 
   useEffect(() => {
     if (mapResetKey == null || mapResetKey === 0) return;
-    map.flyTo([45.0, 14.5], 7, { duration: 1.0 });
+    map.flyTo(MAP_CENTER, MAP_ZOOM, { duration: 1.0 });
   }, [mapResetKey]);
 
   return null;
@@ -212,8 +219,8 @@ export function LiveMap({ vessels, selectedMmsi, track, onSelect, mapResetKey }:
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <MapContainer
-        center={[45.0, 14.5]}
-        zoom={7}
+        center={MAP_CENTER}
+        zoom={MAP_ZOOM}
         style={{ width: '100%', height: '100%' }}
         zoomControl={false}
       >
@@ -233,6 +240,8 @@ export function LiveMap({ vessels, selectedMmsi, track, onSelect, mapResetKey }:
           showHeatmap={showHeatmap}
         />
       </MapContainer>
+
+      <CameraOverlay />
 
       <button
         onClick={() => setShowHeatmap(h => !h)}

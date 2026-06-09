@@ -4,11 +4,13 @@ import { resolve } from 'path'
 
 export default defineConfig(({ mode }) => ({
   plugins: [react()],
-  base: mode === 'aton' ? '/msg21/' : mode === 'charter' ? '/fleet/' : '/',
+  base: mode === 'aton' ? '/msg21/' : mode === 'charter' ? '/fleet/' : mode === 'svante' ? '/svante/' : '/',
   build: {
     rollupOptions: {
       input: mode === 'aton'
         ? resolve(__dirname, 'aton.html')
+        : mode === 'svante'
+        ? resolve(__dirname, 'svante.html')
         : resolve(__dirname, 'index.html'),
     },
   },
@@ -19,6 +21,7 @@ export default defineConfig(({ mode }) => ({
       '/ws': { target: 'ws://localhost:3001', ws: true },
       '/msg21/ws': { target: 'ws://localhost:3001', ws: true },
       '/fleet/ws': { target: 'ws://localhost:3001', ws: true },
+      '/svante/ws': { target: 'ws://localhost:3001', ws: true },
     },
   },
 }))
