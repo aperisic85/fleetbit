@@ -38,6 +38,7 @@ pub struct Vessel {
 pub struct VesselLive {
     pub mmsi: i32,
     pub name: Option<String>,
+    pub ship_type: Option<i16>,
     pub lat: Option<f64>,
     pub lon: Option<f64>,
     pub sog: Option<f32>,
