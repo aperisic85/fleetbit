@@ -11,6 +11,7 @@ interface Props {
   onFilterChange: (f: FilterStatus) => void;
   onSelect: (mmsi: number) => void;
   loading?: boolean;
+  onSearchClear?: () => void;
 }
 
 function SkeletonCard() {
@@ -90,7 +91,7 @@ function ClearIcon() {
   );
 }
 
-export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelect, loading = false }: Props) {
+export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelect, loading = false, onSearchClear }: Props) {
   const { theme, toggleTheme } = useTheme();
   const [search, setSearch] = useState('');
   // Animated filter slider
@@ -207,7 +208,7 @@ export function Sidebar({ vessels, selectedMmsi, filter, onFilterChange, onSelec
           {/* Clear button — prikaži samo kad ima teksta */}
           {search && (
             <button
-              onClick={() => setSearch('')}
+              onClick={() => { setSearch(''); onSearchClear?.(); }}
               style={{
                 position: 'absolute',
                 right: 7,

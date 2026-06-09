@@ -24,6 +24,7 @@ export default function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [filter, setFilter] = useState<FilterStatus>('all');
+  const [mapResetKey, setMapResetKey] = useState(0);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [mode, setMode] = useState<'vessels' | 'atons'>('vessels');
   const [atons, setAtons] = useState<AtonLive[]>([]);
@@ -140,8 +141,13 @@ export default function AppShell() {
 
   const mapVessels = useMemo(() => {
     const cutoff = Date.now() - 2 * 60 * 1000;
-    return filteredVessels.filter(v => v.last_seen != null && new Date(v.last_seen).getTime() >= cutoff);
-  }, [filteredVessels]);
+    const base = filteredVessels.filter(v => v.last_seen != null && new Date(v.last_seen).getTime() >= cutoff);
+    if (selectedMmsi != null && !base.some(v => v.mmsi === selectedMmsi)) {
+      const sel = vessels.get(selectedMmsi);
+      if (sel?.lat != null && sel?.lon != null) return [...base, sel];
+    }
+    return base;
+  }, [filteredVessels, selectedMmsi, vessels]);
 
   const liveTrack = useMemo(() => {
     if (selectedMmsi == null) return track;
@@ -297,9 +303,10 @@ export default function AppShell() {
             vessels={filteredVessels}
             selectedMmsi={selectedMmsi}
             filter={filter}
-            onFilterChange={setFilter}
+            onFilterChange={(f) => { setFilter(f); if (f === 'all') setMapResetKey(k => k + 1); }}
             onSelect={handleSelect}
             loading={loading}
+            onSearchClear={() => setMapResetKey(k => k + 1)}
           />
         </div>
 
@@ -335,6 +342,7 @@ export default function AppShell() {
             selectedMmsi={selectedMmsi}
             track={liveTrack}
             onSelect={handleSelect}
+            mapResetKey={mapResetKey}
           />
 
           <StatsWidget vessels={vesselList} />
