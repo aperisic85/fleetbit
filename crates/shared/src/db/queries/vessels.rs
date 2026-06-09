@@ -74,6 +74,7 @@ pub async fn get_live_vessels(pool: &PgPool) -> Result<Vec<VesselLive>> {
         SELECT
             vl.mmsi AS "mmsi!",
             v.name,
+            v.ship_type,
             vl.lat,
             vl.lon,
             vl.sog,

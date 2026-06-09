@@ -2,13 +2,19 @@ import { Marker, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import type { VesselLive } from '../types';
 
+// Boja po tipu broda (AIS ITU-R M.1371 kodovi, de-facto ECDIS konvencija)
 function vesselColor(v: VesselLive): string {
-  if (v.nav_status === 1 || v.nav_status === 5) return '#94a3b8';
-  const sog = v.sog ?? 0;
-  if (sog < 0.5)  return '#475569';
-  if (sog < 5)    return '#3b82f6';
-  if (sog < 12)   return '#10b981';
-  return '#f59e0b';
+  if (v.nav_status === 1 || v.nav_status === 5) return '#94a3b8'; // sidreno/privezano → siva
+  const t = v.ship_type ?? 0;
+  if (t >= 80 && t <= 89) return '#ef4444'; // tankeri → crvena
+  if (t >= 70 && t <= 79) return '#22c55e'; // teretni → zelena
+  if (t >= 60 && t <= 69) return '#3b82f6'; // putnički → plava
+  if (t >= 30 && t <= 39) return '#f97316'; // ribolovni → narančasta
+  if (t >= 40 && t <= 49) return '#06b6d4'; // brzi (HSC) → tirkizna
+  if (t >= 50 && t <= 59) return '#a855f7'; // servisni (pilot/SAR/tegljač) → ljubičasta
+  if (t >= 20 && t <= 28) return '#eab308'; // WIG → žuta
+  if (t >= 90 && t <= 99) return '#f59e0b'; // ostali definirani tipovi → žuto-smeđa
+  return '#64748b'; // nepoznato (0) → tamnosiva
 }
 
 function statusLabel(v: VesselLive): string {

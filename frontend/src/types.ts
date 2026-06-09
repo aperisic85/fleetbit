@@ -1,6 +1,7 @@
 export interface VesselLive {
   mmsi: number;
   name: string | null;
+  ship_type: number | null;
   lat: number | null;
   lon: number | null;
   sog: number | null;
