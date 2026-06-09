@@ -92,10 +92,15 @@ export default function AppShell() {
             return map;
           });
         } else if (msg.type === 'update' && msg.position?.mmsi != null) {
-          const pos = msg.position;
+          const pos = msg.position as VesselLive & { time?: string };
           setVessels((prev) => {
-            const updated = new Map(prev).set(pos.mmsi, { ...prev.get(pos.mmsi), ...pos });
-            return updated;
+            const existing = prev.get(pos.mmsi);
+            const merged: VesselLive = {
+              ...existing,
+              ...pos,
+              last_seen: pos.time ?? pos.last_seen ?? existing?.last_seen ?? null,
+            };
+            return new Map(prev).set(pos.mmsi, merged);
           });
         }
       });
