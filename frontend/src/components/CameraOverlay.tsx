@@ -73,10 +73,10 @@ export function CameraOverlay() {
     );
   }
 
-  // AXIS MJPEG stream kroz nginx proxy (/camera/) — izbjegava CORS
+  // AXIS MJPEG stream kroz nginx proxy — fiksna rezolucija, CSS skaliranje za S/M
   const streamUrl = imgError
     ? null
-    : `/camera/axis-cgi/mjpg/video.cgi?resolution=${width}x${height}&compression=30`;
+    : `/camera/axis-cgi/mjpg/video.cgi?resolution=480x270&compression=30`;
 
   return (
     <div
@@ -154,12 +154,9 @@ export function CameraOverlay() {
       <div style={{ width, height, background: '#0a0f1a', position: 'relative' }}>
         {streamUrl ? (
           <img
-            key={size}
             src={streamUrl}
-            width={width}
-            height={height}
             onError={() => setImgError(true)}
-            style={{ display: 'block', objectFit: 'cover' }}
+            style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
             alt="AXIS kamera Kamenari"
           />
         ) : (
