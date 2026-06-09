@@ -59,6 +59,18 @@ services:
     networks:
       - fleetbit_net
 
+  frontend_svante:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend.svante
+    container_name: fleetbit_frontend_svante
+    ports:
+      - "8089:80"
+    depends_on:
+      - api
+    networks:
+      - fleetbit_net
+
   migrate:
     build:
       context: .

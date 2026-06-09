@@ -7,9 +7,11 @@
     "dev": "vite",
     "dev:charter": "vite --mode charter",
     "dev:aton": "vite --mode aton",
+    "dev:svante": "vite --mode svante",
     "build": "tsc -b && vite build",
     "build:charter": "tsc -b && vite build --mode charter",
     "build:aton": "tsc -b && vite build --mode aton",
+    "build:svante": "tsc -b && vite build --mode svante",
     "lint": "eslint .",
     "preview": "vite preview"
   },
