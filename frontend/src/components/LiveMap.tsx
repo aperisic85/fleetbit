@@ -13,6 +13,7 @@ interface Props {
   selectedMmsi: number | null;
   track: TrackPoint[];
   onSelect: (mmsi: number) => void;
+  mapResetKey?: number;
 }
 
 const CLUSTER_THRESHOLD = 10;
@@ -123,7 +124,7 @@ function AnimatedTrack({ positions }: { positions: [number, number][] }) {
   );
 }
 
-function MapController({ vessels, selectedMmsi }: { vessels: VesselLive[]; selectedMmsi: number | null }) {
+function MapController({ vessels, selectedMmsi, mapResetKey }: { vessels: VesselLive[]; selectedMmsi: number | null; mapResetKey?: number }) {
   const map = useMap();
 
   useEffect(() => {
@@ -146,6 +147,11 @@ function MapController({ vessels, selectedMmsi }: { vessels: VesselLive[]; selec
       }
     }
   }, [selectedMmsi]);
+
+  useEffect(() => {
+    if (mapResetKey == null || mapResetKey === 0) return;
+    map.flyTo([45.0, 14.5], 7, { duration: 1.0 });
+  }, [mapResetKey]);
 
   return null;
 }
@@ -195,7 +201,7 @@ function MapContent({ vessels, selectedMmsi, track, onSelect, showHeatmap }: Pro
   );
 }
 
-export function LiveMap({ vessels, selectedMmsi, track, onSelect }: Props) {
+export function LiveMap({ vessels, selectedMmsi, track, onSelect, mapResetKey }: Props) {
   const [showHeatmap, setShowHeatmap] = useState(false);
   const { theme } = useTheme();
 
@@ -218,7 +224,7 @@ export function LiveMap({ vessels, selectedMmsi, track, onSelect }: Props) {
           subdomains="abcd"
           maxZoom={19}
         />
-        <MapController vessels={vessels} selectedMmsi={selectedMmsi} />
+        <MapController vessels={vessels} selectedMmsi={selectedMmsi} mapResetKey={mapResetKey} />
         <MapContent
           vessels={vessels}
           selectedMmsi={selectedMmsi}
