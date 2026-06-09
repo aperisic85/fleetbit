@@ -72,7 +72,7 @@ pub async fn get_live_vessels(pool: &PgPool) -> Result<Vec<VesselLive>> {
         VesselLive,
         r#"
         SELECT
-            vl.mmsi,
+            vl.mmsi AS "mmsi!",
             v.name,
             vl.lat,
             vl.lon,
@@ -80,7 +80,7 @@ pub async fn get_live_vessels(pool: &PgPool) -> Result<Vec<VesselLive>> {
             vl.cog,
             vl.heading,
             vl.nav_status,
-            vl.last_seen
+            vl.last_seen AS "last_seen!"
         FROM vessel_latest vl
         LEFT JOIN vessels v ON v.mmsi = vl.mmsi
         WHERE vl.last_seen > NOW() - INTERVAL '2 hours'
