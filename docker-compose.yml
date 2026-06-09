@@ -84,6 +84,9 @@ services:
     environment:
       DATABASE_URL: postgres://fleetbit:fleetbit@db:5432/fleetbit
       RUST_LOG: info
+      STATIONS_CONFIG: /config/stations.toml
+    volumes:
+      - ./stations.toml:/config/stations.toml:ro
     depends_on:
       db:
         condition: service_healthy
