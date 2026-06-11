@@ -1,10 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import GuestMapPage from './pages/GuestMapPage';
-import AppShell from './AppShell';
+import SvanteMonitorPage from './svante/SvanteMonitorPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -14,15 +12,16 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 export default function SvanteApp() {
   return (
     <Routes>
-      <Route path="/" element={<LandingPage />} />
+      {/* Fokus aplikacije je nadzor kanala — karta je odmah na početnoj */}
+      <Route path="/" element={<SvanteMonitorPage mode="guest" />} />
+      <Route path="/live" element={<SvanteMonitorPage mode="guest" />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      <Route path="/live" element={<GuestMapPage />} />
       <Route
         path="/app"
         element={
           <PrivateRoute>
-            <AppShell />
+            <SvanteMonitorPage mode="app" />
           </PrivateRoute>
         }
       />

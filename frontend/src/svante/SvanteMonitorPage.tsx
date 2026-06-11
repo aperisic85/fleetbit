@@ -1,0 +1,356 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import type { TrackPoint, VesselLive } from '../types';
+import { createWebSocket, fetchLiveVessels, fetchTrack } from '../api';
+import { VesselPanel } from '../components/VesselPanel';
+import { useAuth } from '../AuthContext';
+import { SvanteMap } from './SvanteMap';
+import { ChannelPanel } from './ChannelPanel';
+import { AlertBanner } from './AlertBanner';
+import { EventLog } from './EventLog';
+import { useChannelWatch } from './useChannelWatch';
+
+function Clock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <span style={{ fontSize: 13, fontWeight: 700, color: '#7dd3fc', fontVariantNumeric: 'tabular-nums', letterSpacing: '0.05em' }}>
+      {now.toLocaleTimeString('hr-HR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+    </span>
+  );
+}
+
+interface Props {
+  mode: 'guest' | 'app';
+}
+
+/**
+ * Glavni VTS nadzorni ekran Kanala sv. Ante (Šibenik).
+ * Prati prolaske kroz kanal, upozorava na susrete (2+ plovila u zoni)
+ * i alarmira na prekoračenje brzine od 5 kn.
+ */
+export default function SvanteMonitorPage({ mode }: Props) {
+  const { user, isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const [vessels, setVessels] = useState<Map<number, VesselLive>>(new Map());
+  const [selectedMmsi, setSelectedMmsi] = useState<number | null>(null);
+  const [track, setTrack] = useState<TrackPoint[]>([]);
+  const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+  const [loading, setLoading] = useState(true);
+  const [resetKey, setResetKey] = useState(0);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
+  const [soundOn, setSoundOn] = useState(() => localStorage.getItem('svante_sound') !== 'off');
+  const wsRef = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  const toggleSound = useCallback(() => {
+    setSoundOn((s) => {
+      localStorage.setItem('svante_sound', s ? 'off' : 'on');
+      return !s;
+    });
+  }, []);
+
+  // Početni snapshot
+  useEffect(() => {
+    fetchLiveVessels()
+      .then((data) => {
+        const map = new Map<number, VesselLive>();
+        for (const v of data.vessels ?? []) map.set(v.mmsi, v);
+        setVessels(map);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Live ažuriranja preko WebSocketa
+  useEffect(() => {
+    function connect() {
+      setWsStatus('connecting');
+      const ws = createWebSocket((data) => {
+        const msg = data as { type: string; vessels?: VesselLive[]; position?: VesselLive };
+        if (msg.type === 'snapshot' && Array.isArray(msg.vessels)) {
+          setVessels((prev) => {
+            const map = new Map(prev);
+            for (const v of msg.vessels!) map.set(v.mmsi, v);
+            return map;
+          });
+        } else if (msg.type === 'update' && msg.position?.mmsi != null) {
+          const pos = msg.position as VesselLive & { time?: string };
+          setVessels((prev) => {
+            const existing = prev.get(pos.mmsi);
+            const merged: VesselLive = {
+              ...existing,
+              ...pos,
+              last_seen: pos.time ?? pos.last_seen ?? existing?.last_seen ?? null,
+            };
+            return new Map(prev).set(pos.mmsi, merged);
+          });
+        }
+      });
+      ws.onopen = () => setWsStatus('connected');
+      ws.onclose = () => { setWsStatus('disconnected'); setTimeout(connect, 3000); };
+      ws.onerror = () => ws.close();
+      wsRef.current = ws;
+    }
+    connect();
+    return () => wsRef.current?.close();
+  }, []);
+
+  // Trag odabranog plovila (samo za prijavljene)
+  useEffect(() => {
+    if (mode !== 'app' || selectedMmsi == null) return;
+    fetchTrack(selectedMmsi, undefined, undefined, 2000)
+      .then((data) => setTrack(data.track ?? []))
+      .catch(console.error);
+  }, [mode, selectedMmsi]);
+
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Samo svježa plovila (zadnjih 10 min) — lokalna zona, AIS javlja često
+  const mapVessels = useMemo(() => {
+    const cutoff = now - 10 * 60 * 1000;
+    return Array.from(vessels.values()).filter(
+      (v) => v.lat != null && v.lon != null
+        && v.last_seen != null && new Date(v.last_seen).getTime() >= cutoff
+    );
+  }, [vessels, now]);
+
+  const watch = useChannelWatch(mapVessels, soundOn);
+
+  const handleSelect = useCallback((mmsi: number) => {
+    setTrack([]);
+    setSelectedMmsi(mmsi);
+  }, []);
+
+  const wsCfg = wsStatus === 'connected'
+    ? { color: '#34d399', label: 'LIVE', pulse: true }
+    : wsStatus === 'connecting'
+    ? { color: '#f59e0b', label: 'SPAJANJE', pulse: true }
+    : { color: '#f87171', label: 'OFFLINE', pulse: false };
+
+  const bannerActive = watch.level === 'meeting' || watch.level === 'speeding';
+  const panelTop = isMobile && bannerActive ? 86 : 12;
+  const showVesselPanel = mode === 'app' && selectedMmsi != null;
+
+  return (
+    <div style={{
+      height: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      background: '#0a0f1a',
+      fontFamily: 'system-ui, sans-serif',
+      overflow: 'hidden',
+    }}>
+      {/* ── Zaglavlje ── */}
+      <header style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+        padding: '0 16px',
+        height: 52,
+        flexShrink: 0,
+        background: 'linear-gradient(180deg, rgba(15,23,42,0.98), rgba(10,16,30,0.96))',
+        borderBottom: '1px solid rgba(56,189,248,0.15)',
+        zIndex: 1100,
+      }}>
+        <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          <span style={{
+            width: 32, height: 32, borderRadius: 9, flexShrink: 0,
+            background: 'linear-gradient(135deg, #0ea5e9, #0c4a6e)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 17, boxShadow: '0 0 14px rgba(14,165,233,0.35)',
+          }}>⚓</span>
+          <span style={{ minWidth: 0 }}>
+            <span style={{ display: 'block', fontWeight: 800, fontSize: 15, color: '#e2e8f0', letterSpacing: '0.01em', whiteSpace: 'nowrap' }}>
+              Kanal <span style={{ color: '#38bdf8' }}>sv. Ante</span>
+            </span>
+            {!isMobile && (
+              <span style={{ display: 'block', fontSize: 10, color: '#64748b', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+                VTS nadzor prolaska · Šibenik
+              </span>
+            )}
+          </span>
+        </Link>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 14, flexShrink: 0 }}>
+          {!isMobile && <Clock />}
+
+          {/* WS status */}
+          <span style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            fontSize: 10, fontWeight: 800, color: wsCfg.color, letterSpacing: '0.08em',
+            background: `${wsCfg.color}16`,
+            border: `1px solid ${wsCfg.color}40`,
+            borderRadius: 14, padding: '4px 10px',
+          }}>
+            <span style={{
+              width: 7, height: 7, borderRadius: '50%', background: wsCfg.color,
+              animation: wsCfg.pulse ? 'wsPulse 1.4s ease-in-out infinite' : 'none',
+            }} />
+            {wsCfg.label}
+          </span>
+
+          {/* Zvuk alarma */}
+          <button
+            onClick={toggleSound}
+            title={soundOn ? 'Isključi zvučni alarm' : 'Uključi zvučni alarm'}
+            style={{
+              background: soundOn ? 'rgba(56,189,248,0.12)' : 'transparent',
+              border: `1px solid ${soundOn ? 'rgba(56,189,248,0.35)' : 'rgba(255,255,255,0.12)'}`,
+              borderRadius: 8, padding: '5px 9px', fontSize: 14, cursor: 'pointer', lineHeight: 1,
+            }}
+          >
+            {soundOn ? '🔔' : '🔕'}
+          </button>
+
+          {/* Auth */}
+          {mode === 'app' && user ? (
+            <>
+              {!isMobile && (
+                <span style={{ fontSize: 12, color: '#94a3b8', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {user.company_name ?? user.email}
+                </span>
+              )}
+              <button
+                onClick={() => { logout(); navigate('/', { replace: true }); }}
+                style={{
+                  background: 'transparent', border: '1px solid rgba(255,255,255,0.12)',
+                  color: '#94a3b8', borderRadius: 8, padding: '5px 12px', fontSize: 12, cursor: 'pointer',
+                }}
+              >
+                Odjava
+              </button>
+            </>
+          ) : isAuthenticated ? (
+            <Link to="/app" style={{
+              background: '#0ea5e9', color: '#fff', textDecoration: 'none',
+              fontSize: 12, padding: '6px 14px', borderRadius: 8, fontWeight: 700, whiteSpace: 'nowrap',
+            }}>
+              Otvori nadzor
+            </Link>
+          ) : (
+            <Link to="/login" style={{
+              background: '#0ea5e9', color: '#fff', textDecoration: 'none',
+              fontSize: 12, padding: '6px 14px', borderRadius: 8, fontWeight: 700, whiteSpace: 'nowrap',
+            }}>
+              Prijava
+            </Link>
+          )}
+        </div>
+      </header>
+
+      {/* ── Karta s nadzorom ── */}
+      <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+        {loading && (
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 1200,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12,
+            background: '#0a0f1a', color: '#64748b', fontSize: 14,
+          }}>
+            <span style={{ fontSize: 30, animation: 'wsPulse 1.2s ease-in-out infinite' }}>⚓</span>
+            Učitavanje nadzora kanala...
+          </div>
+        )}
+
+        <SvanteMap
+          vessels={mapVessels}
+          watch={watch}
+          selectedMmsi={selectedMmsi}
+          track={showVesselPanel ? track : []}
+          onSelect={handleSelect}
+          resetKey={resetKey}
+        />
+
+        <AlertBanner
+          level={watch.level}
+          channelVessels={watch.channelVessels}
+          speedingVessels={watch.speedingVessels}
+          isMobile={isMobile}
+        />
+
+        {!showVesselPanel && (
+          <ChannelPanel
+            level={watch.level}
+            channelVessels={watch.channelVessels}
+            onSelect={handleSelect}
+            isMobile={isMobile}
+            topOffset={panelTop}
+          />
+        )}
+
+        {showVesselPanel && (
+          <VesselPanel
+            mmsi={selectedMmsi!}
+            livePosition={vessels.get(selectedMmsi!) ?? null}
+            onClose={() => setSelectedMmsi(null)}
+            isMobile={isMobile}
+          />
+        )}
+
+        <EventLog events={watch.events} isMobile={isMobile} />
+
+        {/* Recentriraj na kanal */}
+        <button
+          onClick={() => { setSelectedMmsi(null); setResetKey((k) => k + 1); }}
+          title="Centriraj kartu na Kanal sv. Ante"
+          style={{
+            position: 'absolute',
+            bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+            left: 12,
+            zIndex: 1000,
+            background: 'rgba(10,16,30,0.92)',
+            border: '1px solid rgba(56,189,248,0.3)',
+            color: '#7dd3fc',
+            borderRadius: 8,
+            padding: '7px 12px',
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: 'pointer',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          ⌖ Kanal
+        </button>
+
+        {/* Poziv na prijavu za goste */}
+        {mode === 'guest' && !isAuthenticated && !isMobile && (
+          <div style={{
+            position: 'absolute',
+            bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1000,
+            background: 'rgba(10,16,30,0.9)',
+            border: '1px solid rgba(56,189,248,0.2)',
+            borderRadius: 10,
+            padding: '8px 16px',
+            fontSize: 12,
+            color: '#94a3b8',
+            backdropFilter: 'blur(8px)',
+            whiteSpace: 'nowrap',
+          }}>
+            Za detalje o plovilima{' '}
+            <Link to="/login" style={{ color: '#38bdf8', textDecoration: 'none', fontWeight: 700 }}>prijavite se</Link>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
