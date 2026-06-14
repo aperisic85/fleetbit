@@ -21,6 +21,9 @@ interface Props {
   track: TrackPoint[];
   onSelect: (mmsi: number) => void;
   mapResetKey?: number;
+  /** Kad je false, trag se crta kao statična linija (bez dash animacije) —
+   *  korisno tijekom replaya gdje se trag mijenja na svakom kadru. */
+  animateTrack?: boolean;
 }
 
 const CLUSTER_THRESHOLD = 10;
@@ -163,7 +166,7 @@ function MapController({ vessels, selectedMmsi, mapResetKey }: { vessels: Vessel
   return null;
 }
 
-function MapContent({ vessels, selectedMmsi, track, onSelect, showHeatmap }: Props & { showHeatmap: boolean }) {
+function MapContent({ vessels, selectedMmsi, track, onSelect, showHeatmap, animateTrack }: Props & { showHeatmap: boolean }) {
   const [zoom, setZoom] = useState(7);
   const map = useMap();
 
@@ -186,7 +189,11 @@ function MapContent({ vessels, selectedMmsi, track, onSelect, showHeatmap }: Pro
   return (
     <>
       {showHeatmap && <HeatmapLayer vessels={vessels} />}
-      <AnimatedTrack positions={trackPositions} />
+      {animateTrack === false
+        ? (trackPositions.length >= 2 && (
+            <Polyline positions={trackPositions} color="#f59e0b" weight={2} opacity={0.75} />
+          ))
+        : <AnimatedTrack positions={trackPositions} />}
       {clusters.map((c) => (
         <ClusterMarker
           key={c.key}
@@ -208,7 +215,7 @@ function MapContent({ vessels, selectedMmsi, track, onSelect, showHeatmap }: Pro
   );
 }
 
-export function LiveMap({ vessels, selectedMmsi, track, onSelect, mapResetKey }: Props) {
+export function LiveMap({ vessels, selectedMmsi, track, onSelect, mapResetKey, animateTrack }: Props) {
   const [showHeatmap, setShowHeatmap] = useState(false);
   const { theme } = useTheme();
 
@@ -238,6 +245,7 @@ export function LiveMap({ vessels, selectedMmsi, track, onSelect, mapResetKey }:
           track={track}
           onSelect={onSelect}
           showHeatmap={showHeatmap}
+          animateTrack={animateTrack}
         />
       </MapContainer>
 

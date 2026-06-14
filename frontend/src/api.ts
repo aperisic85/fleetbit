@@ -75,6 +75,28 @@ export async function fetchTrack(mmsi: number, from?: string, to?: string, limit
   return res.json();
 }
 
+/**
+ * Sirovi podaci za animirani replay cijele flote u zadanom rasponu.
+ * `from`/`to` su ISO 8601 stringovi. Backend garantira barem 48h unatrag.
+ */
+export async function fetchReplayRange(from: string, to: string, limit = 200000) {
+  const params = new URLSearchParams({ from, to, limit: String(limit) });
+  const res = await fetch(`${BASE}/replay/range?${params}`, { headers: authHeaders() });
+  if (!res.ok) throw new Error('Failed to fetch replay range');
+  return res.json();
+}
+
+/**
+ * Stanje cijele flote u jednom trenutku (premotavanje na točno vrijeme).
+ * `at` je ISO 8601, `windowMin` koliko minuta unatrag pozicija smije biti.
+ */
+export async function fetchReplaySnapshot(at: string, windowMin = 30) {
+  const params = new URLSearchParams({ at, window: String(windowMin) });
+  const res = await fetch(`${BASE}/replay/snapshot?${params}`, { headers: authHeaders() });
+  if (!res.ok) throw new Error('Failed to fetch replay snapshot');
+  return res.json();
+}
+
 export async function fetchLiveAtons() {
   const res = await fetch(`${BASE}/atons/live`);
   if (!res.ok) throw new Error('Failed to fetch live AtoNs');
