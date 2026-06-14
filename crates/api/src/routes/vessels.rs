@@ -84,3 +84,77 @@ pub async fn get_track(
         "track": track,
     })))
 }
+
+/// Query parametri za replay snapshot.
+#[derive(Debug, Deserialize)]
+pub struct SnapshotParams {
+    /// Trenutak za koji želimo stanje flote (ISO 8601). Obavezno.
+    pub at: DateTime<Utc>,
+    /// Koliko minuta unatrag pozicija smije biti da se brod smatra prisutnim.
+    /// Default: 30, raspon 1–360.
+    pub window: Option<i64>,
+}
+
+/// GET /aisapi/v1/replay/snapshot?at=&window=
+/// Stanje cijele flote u jednom trenutku — za premotavanje karte unatrag.
+/// Zahtijeva prijavu.
+pub async fn replay_snapshot(
+    AuthUser(_claims): AuthUser,
+    State(state): State<AppState>,
+    Query(params): Query<SnapshotParams>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let window = params.window.unwrap_or(30).clamp(1, 360);
+    let vessels = db::get_vessels_at(&state.pool, params.at, window).await?;
+    Ok(Json(serde_json::json!({
+        "at": params.at,
+        "window_minutes": window,
+        "count": vessels.len(),
+        "vessels": vessels,
+    })))
+}
+
+/// Query parametri za replay range.
+#[derive(Debug, Deserialize)]
+pub struct ReplayRangeParams {
+    /// Početak raspona (ISO 8601). Default: 48h unatrag.
+    pub from: Option<DateTime<Utc>>,
+    /// Kraj raspona (ISO 8601). Default: sada.
+    pub to: Option<DateTime<Utc>>,
+    /// Maksimalan broj točaka. Default: 100000, max: 500000.
+    pub limit: Option<i64>,
+}
+
+/// GET /aisapi/v1/replay/range?from=&to=&limit=
+/// Sve pozicije flote u rasponu — sirovi podaci za animirani replay.
+/// Garantira dostupnost barem 48h unatrag; raspon je ograničen na 7 dana.
+/// Zahtijeva prijavu.
+pub async fn replay_range(
+    AuthUser(_claims): AuthUser,
+    State(state): State<AppState>,
+    Query(params): Query<ReplayRangeParams>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let now = Utc::now();
+    let to = params.to.unwrap_or(now);
+    // Default: 48h unatrag. Donja granica raspona ograničena na 7 dana
+    // da zaštitimo bazu od prevelikih upita.
+    let mut from = params.from.unwrap_or_else(|| now - Duration::hours(48));
+    let earliest = now - Duration::days(7);
+    if from < earliest {
+        from = earliest;
+    }
+    if from > to {
+        return Err(ApiError::BadRequest(
+            "'from' mora biti prije 'to'".to_string(),
+        ));
+    }
+    let limit = params.limit.unwrap_or(100_000).clamp(1, 500_000);
+
+    let positions = db::get_fleet_positions(&state.pool, from, to, limit).await?;
+
+    Ok(Json(serde_json::json!({
+        "from": from,
+        "to": to,
+        "count": positions.len(),
+        "positions": positions,
+    })))
+}

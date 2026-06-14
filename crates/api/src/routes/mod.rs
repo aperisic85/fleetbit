@@ -24,6 +24,9 @@ pub fn router() -> Router<AppState> {
                 // ── Zaštićeno: detalji i track zahtijevaju prijavu ─────────
                 .route("/vessels/{mmsi}", get(vessels::get_vessel))
                 .route("/vessels/{mmsi}/track", get(vessels::get_track))
+                // ── Replay: premotavanje stanja flote unatrag ─────────────
+                .route("/replay/snapshot", get(vessels::replay_snapshot))
+                .route("/replay/range", get(vessels::replay_range))
                 // ── AtoN pregled ──────────────────────────────────────────
                 .route("/atons/live", get(atons::live_atons)),
         )

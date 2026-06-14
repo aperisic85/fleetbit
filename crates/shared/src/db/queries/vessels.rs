@@ -68,24 +68,23 @@ pub async fn upsert_vessel_static(pool: &PgPool, update: &StaticUpdate) -> Resul
 }
 
 pub async fn get_live_vessels(pool: &PgPool) -> Result<Vec<VesselLive>> {
-    let vessels = sqlx::query_as!(
-        VesselLive,
+    let vessels = sqlx::query_as::<_, VesselLive>(
         r#"
         SELECT
-            vl.mmsi AS "mmsi!",
-            v.name,
-            v.ship_type,
-            vl.lat,
-            vl.lon,
-            vl.sog,
-            vl.cog,
-            vl.heading,
-            vl.nav_status,
-            vl.last_seen AS "last_seen!"
+            vl.mmsi       AS mmsi,
+            v.name        AS name,
+            v.ship_type   AS ship_type,
+            vl.lat        AS lat,
+            vl.lon        AS lon,
+            vl.sog        AS sog,
+            vl.cog        AS cog,
+            vl.heading    AS heading,
+            vl.nav_status AS nav_status,
+            vl.last_seen  AS last_seen
         FROM vessel_latest vl
         LEFT JOIN vessels v ON v.mmsi = vl.mmsi
         WHERE vl.last_seen > NOW() - INTERVAL '2 hours'
-        "#
+        "#,
     )
     .fetch_all(pool)
     .await?;
@@ -129,6 +128,72 @@ pub async fn get_vessel_track(
         "#,
     )
     .bind(mmsi)
+    .bind(from)
+    .bind(to)
+    .bind(limit)
+    .fetch_all(pool)
+    .await?;
+    Ok(positions)
+}
+
+/// Snapshot cijele flote u trenutku `at` — za svaki MMSI zadnja poznata
+/// pozicija na ili prije `at`, ali samo ako nije starija od `window_minutes`
+/// (inače brod nije bio "prisutan" u tom trenutku). Koristi se za premotavanje
+/// karte unatrag na točno određeno vrijeme.
+pub async fn get_vessels_at(
+    pool: &PgPool,
+    at: DateTime<Utc>,
+    window_minutes: i64,
+) -> Result<Vec<VesselLive>> {
+    let vessels = sqlx::query_as::<_, VesselLive>(
+        r#"
+        SELECT DISTINCT ON (vp.mmsi)
+            vp.mmsi       AS mmsi,
+            v.name        AS name,
+            v.ship_type   AS ship_type,
+            vp.lat        AS lat,
+            vp.lon        AS lon,
+            vp.sog        AS sog,
+            vp.cog        AS cog,
+            vp.heading    AS heading,
+            vp.nav_status AS nav_status,
+            vp.time       AS last_seen
+        FROM vessel_positions vp
+        LEFT JOIN vessels v ON v.mmsi = vp.mmsi
+        WHERE vp.time <= $1
+          AND vp.time >= $1 - make_interval(mins => $2)
+          AND vp.lat IS NOT NULL
+          AND vp.lon IS NOT NULL
+        ORDER BY vp.mmsi, vp.time DESC
+        "#,
+    )
+    .bind(at)
+    .bind(window_minutes as i32)
+    .fetch_all(pool)
+    .await?;
+    Ok(vessels)
+}
+
+/// Sve pozicije svih brodova u rasponu [from, to] — sirovi podaci za
+/// animirani replay na klijentu. Sortirano po vremenu uzlazno.
+pub async fn get_fleet_positions(
+    pool: &PgPool,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+    limit: i64,
+) -> Result<Vec<VesselPosition>> {
+    let positions = sqlx::query_as::<_, VesselPosition>(
+        r#"
+        SELECT time, mmsi, lat, lon, sog, cog, heading, nav_status, message_type, station_id
+        FROM vessel_positions
+        WHERE time >= $1
+          AND time <= $2
+          AND lat IS NOT NULL
+          AND lon IS NOT NULL
+        ORDER BY time ASC
+        LIMIT $3
+        "#,
+    )
     .bind(from)
     .bind(to)
     .bind(limit)

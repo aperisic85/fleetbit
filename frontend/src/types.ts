@@ -39,6 +39,20 @@ export interface TrackPoint {
   cog: number | null;
 }
 
+/** Sirova pozicija iz vessel_positions — koristi se za replay flote. */
+export interface ReplayPosition {
+  time: string;
+  mmsi: number;
+  lat: number | null;
+  lon: number | null;
+  sog: number | null;
+  cog: number | null;
+  heading: number | null;
+  nav_status: number | null;
+  message_type: number | null;
+  station_id: number | null;
+}
+
 export interface AtonLive {
   mmsi: number;
   name: string | null;

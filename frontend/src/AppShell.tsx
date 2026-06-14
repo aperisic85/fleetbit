@@ -1,16 +1,34 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { VesselLive, TrackPoint, AtonLive } from './types';
-import { fetchLiveVessels, fetchTrack, createWebSocket, fetchLiveAtons } from './api';
+import type { VesselLive, TrackPoint, AtonLive, ReplayPosition } from './types';
+import { fetchLiveVessels, fetchTrack, createWebSocket, fetchLiveAtons, fetchReplayRange } from './api';
 import { Sidebar, type FilterStatus } from './components/Sidebar';
 import { LiveMap } from './components/LiveMap';
 import { VesselPanel } from './components/VesselPanel';
 import { StatsWidget } from './components/StatsWidget';
 import { ToastContainer, type ToastMessage } from './components/Toast';
 import { AtonView } from './components/AtonView';
+import { ReplayControl } from './components/ReplayControl';
 import { useAuth } from './AuthContext';
 
 let toastIdCounter = 1;
+
+// Replay: koliko sati unatrag je dostupno (zahtjev: barem 48h).
+const REPLAY_WINDOW_H = 48;
+// Brod se smatra prisutnim u kadru ako mu je zadnja pozicija unutar ovog
+// prozora prije trenutnog vremena replaya.
+const REPLAY_FRESH_MS = 30 * 60 * 1000;
+
+/** Binarno traži indeks zadnje pozicije s time <= t (niz sortiran uzlazno). */
+function lastIndexBefore(arr: ReplayPosition[], t: number): number {
+  let lo = 0, hi = arr.length - 1, idx = -1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (new Date(arr[mid].time).getTime() <= t) { idx = mid; lo = mid + 1; }
+    else hi = mid - 1;
+  }
+  return idx;
+}
 
 export default function AppShell() {
   const { user, logout } = useAuth();
@@ -32,6 +50,17 @@ export default function AppShell() {
   const wsRef = useRef<WebSocket | null>(null);
   const prevWsStatus = useRef<string>('connecting');
 
+  // ── Replay (premotavanje stanja flote unatrag) ──────────────────────────
+  const [replayActive, setReplayActive] = useState(false);
+  const [replayLoading, setReplayLoading] = useState(false);
+  const [replayPlaying, setReplayPlaying] = useState(false);
+  const [replaySpeed, setReplaySpeed] = useState(60);
+  const [replayTime, setReplayTime] = useState(() => Date.now());
+  const [replayBounds, setReplayBounds] = useState(() => ({ min: Date.now() - REPLAY_WINDOW_H * 3600_000, max: Date.now() }));
+  // Pozicije grupirane po MMSI, sortirane uzlazno po vremenu.
+  const replayDataRef = useRef<Map<number, ReplayPosition[]>>(new Map());
+  const [replayDataVersion, setReplayDataVersion] = useState(0);
+
   const addToast = useCallback((text: string, type: ToastMessage['type'] = 'info') => {
     const id = toastIdCounter++;
     setToasts((prev) => [...prev.slice(-4), { id, text, type }]);
@@ -45,6 +74,55 @@ export default function AppShell() {
     logout();
     navigate('/', { replace: true });
   }, [logout, navigate]);
+
+  const enterReplay = useCallback(async () => {
+    const max = Date.now();
+    const min = max - REPLAY_WINDOW_H * 3600_000;
+    setReplayBounds({ min, max });
+    setReplayActive(true);
+    setReplayPlaying(false);
+    setReplayTime(min);
+    setReplayLoading(true);
+    try {
+      const data = await fetchReplayRange(new Date(min).toISOString(), new Date(max).toISOString());
+      const byMmsi = new Map<number, ReplayPosition[]>();
+      // Podaci dolaze sortirani uzlazno po vremenu, pa su i po brodu uzlazni.
+      for (const p of (data.positions ?? []) as ReplayPosition[]) {
+        if (p.lat == null || p.lon == null) continue;
+        const arr = byMmsi.get(p.mmsi);
+        if (arr) arr.push(p);
+        else byMmsi.set(p.mmsi, [p]);
+      }
+      replayDataRef.current = byMmsi;
+      setReplayDataVersion((v) => v + 1);
+      addToast(`Replay spreman: ${REPLAY_WINDOW_H}h, ${byMmsi.size} brodova`, 'success');
+    } catch (e) {
+      console.error(e);
+      addToast('Replay podaci nisu dostupni', 'error');
+      setReplayActive(false);
+    } finally {
+      setReplayLoading(false);
+    }
+  }, [addToast]);
+
+  const exitReplay = useCallback(() => {
+    setReplayActive(false);
+    setReplayPlaying(false);
+    replayDataRef.current = new Map();
+    setReplayDataVersion((v) => v + 1);
+  }, []);
+
+  const toggleReplay = useCallback(() => {
+    if (replayActive) exitReplay();
+    else void enterReplay();
+  }, [replayActive, enterReplay, exitReplay]);
+
+  const handlePlayPause = useCallback(() => {
+    if (replayPlaying) { setReplayPlaying(false); return; }
+    // Ako smo na kraju, kreni ispočetka.
+    if (replayTime >= replayBounds.max - 500) setReplayTime(replayBounds.min);
+    setReplayPlaying(true);
+  }, [replayPlaying, replayTime, replayBounds.max, replayBounds.min]);
 
   useEffect(() => {
     if (mode !== 'atons') return;
@@ -174,6 +252,73 @@ export default function AppShell() {
     }
     return filtered;
   }, [track, selectedMmsi, vessels]);
+
+  // Animacijska petlja replaya — pomiče vrijeme prema naprijed dok ne dođe do kraja.
+  useEffect(() => {
+    if (!replayActive || !replayPlaying || replayLoading) return;
+    let raf = 0;
+    let last = performance.now();
+    const tick = (t: number) => {
+      const dt = t - last;
+      last = t;
+      setReplayTime((prev) => {
+        const next = prev + dt * replaySpeed;
+        if (next >= replayBounds.max) {
+          setReplayPlaying(false);
+          return replayBounds.max;
+        }
+        return next;
+      });
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [replayActive, replayPlaying, replayLoading, replaySpeed, replayBounds.max]);
+
+  // Stanje flote u trenutku replaya — zadnja pozicija svakog broda do replayTime
+  // (uz prozor svježine), obogaćeno imenom/tipom iz live podataka.
+  const replayVessels = useMemo<VesselLive[]>(() => {
+    if (!replayActive) return [];
+    void replayDataVersion; // ovisnost: ponovo izračunaj kad se podaci učitaju
+    const cutoff = replayTime - REPLAY_FRESH_MS;
+    const out: VesselLive[] = [];
+    for (const [mmsi, arr] of replayDataRef.current) {
+      const idx = lastIndexBefore(arr, replayTime);
+      if (idx < 0) continue;
+      const p = arr[idx];
+      if (new Date(p.time).getTime() < cutoff) continue;
+      const meta = vessels.get(mmsi);
+      out.push({
+        mmsi,
+        name: meta?.name ?? null,
+        ship_type: meta?.ship_type ?? null,
+        lat: p.lat,
+        lon: p.lon,
+        sog: p.sog,
+        cog: p.cog,
+        heading: p.heading ?? null,
+        nav_status: p.nav_status ?? null,
+        last_seen: p.time,
+      });
+    }
+    return out;
+  }, [replayActive, replayTime, replayDataVersion, vessels]);
+
+  // Trag odabranog broda do trenutka replaya.
+  const replayTrack = useMemo<TrackPoint[]>(() => {
+    if (!replayActive || selectedMmsi == null) return [];
+    void replayDataVersion;
+    const arr = replayDataRef.current.get(selectedMmsi);
+    if (!arr) return [];
+    const idx = lastIndexBefore(arr, replayTime);
+    if (idx < 0) return [];
+    return arr.slice(0, idx + 1).map((p) => ({
+      time: p.time, mmsi: p.mmsi, lat: p.lat, lon: p.lon, sog: p.sog, cog: p.cog,
+    }));
+  }, [replayActive, selectedMmsi, replayTime, replayDataVersion]);
+
+  const displayVessels = replayActive ? replayVessels : mapVessels;
+  const displayTrack = replayActive ? replayTrack : liveTrack;
 
   const handleSelect = (mmsi: number) => {
     setSelectedMmsi(mmsi);
@@ -351,14 +496,30 @@ export default function AppShell() {
           )}
 
           <LiveMap
-            vessels={mapVessels}
+            vessels={displayVessels}
             selectedMmsi={selectedMmsi}
-            track={liveTrack}
+            track={displayTrack}
             onSelect={handleSelect}
             mapResetKey={mapResetKey}
+            animateTrack={!replayActive}
           />
 
-          <StatsWidget vessels={vesselList} />
+          <StatsWidget vessels={replayActive ? replayVessels : vesselList} />
+
+          <ReplayControl
+            active={replayActive}
+            loading={replayLoading}
+            playing={replayPlaying}
+            time={replayTime}
+            min={replayBounds.min}
+            max={replayBounds.max}
+            speed={replaySpeed}
+            vesselCount={replayVessels.length}
+            onToggle={toggleReplay}
+            onPlayPause={handlePlayPause}
+            onSeek={(t) => { setReplayPlaying(false); setReplayTime(t); }}
+            onSpeed={setReplaySpeed}
+          />
 
           <div style={{
             position: 'absolute',
