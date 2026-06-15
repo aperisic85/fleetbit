@@ -123,10 +123,15 @@ export async function fetchLiveAtons() {
   return res.json();
 }
 
-export function createWebSocket(onMessage: (data: unknown) => void): WebSocket {
+/** URL WebSocket endpointa za live pozicije (poštuje BASE_URL i http/https). */
+export function liveWsUrl(): string {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const base = import.meta.env.BASE_URL.replace(/\/$/, '');
-  const ws = new WebSocket(`${proto}://${location.host}${base}/ws`);
+  return `${proto}://${location.host}${base}/ws`;
+}
+
+export function createWebSocket(onMessage: (data: unknown) => void): WebSocket {
+  const ws = new WebSocket(liveWsUrl());
   ws.onmessage = (e) => {
     try {
       onMessage(JSON.parse(e.data));

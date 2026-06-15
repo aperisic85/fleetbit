@@ -1,58 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { VesselLive } from '../types';
-import { fetchLiveVessels, createWebSocket } from '../api';
 import { LiveMap } from '../components/LiveMap';
 import { StatsWidget } from '../components/StatsWidget';
+import { useLiveVessels } from '../useLiveVessels';
 
 /**
  * Gostujuća live karta — brodovi su vidljivi ali bez detalja.
  * Klikanje na brod preusmjerava na prijavu.
  */
 export default function GuestMapPage() {
-  const [vessels, setVessels] = useState<Map<number, VesselLive>>(new Map());
-  const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
-  const [loading, setLoading] = useState(true);
-  const wsRef = useRef<WebSocket | null>(null);
-
-  useEffect(() => {
-    fetchLiveVessels()
-      .then((data) => {
-        const map = new Map<number, VesselLive>();
-        for (const v of data.vessels ?? []) map.set(v.mmsi, v);
-        setVessels(map);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+  const { vessels, wsStatus, loading } = useLiveVessels();
 
   const handleSelect = useCallback(() => {
     // Gosti ne mogu vidjeti detalje — prijava je potrebna
-  }, []);
-
-  useEffect(() => {
-    function connect() {
-      setWsStatus('connecting');
-      const ws = createWebSocket((data) => {
-        const msg = data as { type: string; vessels?: VesselLive[]; position?: VesselLive };
-        if (msg.type === 'snapshot' && Array.isArray(msg.vessels)) {
-          setVessels((prev) => {
-            const map = new Map(prev);
-            for (const v of msg.vessels!) map.set(v.mmsi, v);
-            return map;
-          });
-        } else if (msg.type === 'update' && msg.position?.mmsi != null) {
-          const pos = msg.position;
-          setVessels((prev) => new Map(prev).set(pos.mmsi, { ...prev.get(pos.mmsi), ...pos }));
-        }
-      });
-      ws.onopen = () => setWsStatus('connected');
-      ws.onclose = () => { setWsStatus('disconnected'); setTimeout(connect, 3000); };
-      ws.onerror = () => ws.close();
-      wsRef.current = ws;
-    }
-    connect();
-    return () => wsRef.current?.close();
   }, []);
 
   const vesselList = useMemo(
@@ -60,10 +20,18 @@ export default function GuestMapPage() {
     [vessels]
   );
 
+  // Periodički osvježi prozor svježine kako bi zastarjeli brodovi nestali i
+  // bez novih WS poruka.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   const mapVessels = useMemo(() => {
-    const cutoff = Date.now() - 5 * 60 * 1000;
+    const cutoff = now - 5 * 60 * 1000;
     return vesselList.filter(v => v.last_seen != null && new Date(v.last_seen).getTime() >= cutoff);
-  }, [vesselList]);
+  }, [vesselList, now]);
 
   const wsCfg = wsStatus === 'connected'
     ? { color: '#34d399', bg: '#34d39918', border: '#34d39940', label: 'Live', pulse: true }

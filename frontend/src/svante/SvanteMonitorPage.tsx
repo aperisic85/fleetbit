@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import type { TrackPoint, VesselLive } from '../types';
-import { createWebSocket, fetchLiveVessels, fetchTrack } from '../api';
+import type { TrackPoint } from '../types';
+import { fetchTrack } from '../api';
+import { useLiveVessels } from '../useLiveVessels';
 import { VesselPanel } from '../components/VesselPanel';
 import { useAuth } from '../AuthContext';
 import { SvanteMap } from './SvanteMap';
@@ -36,15 +37,12 @@ export default function SvanteMonitorPage({ mode }: Props) {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [vessels, setVessels] = useState<Map<number, VesselLive>>(new Map());
+  const { vessels, wsStatus, loading } = useLiveVessels();
   const [selectedMmsi, setSelectedMmsi] = useState<number | null>(null);
   const [track, setTrack] = useState<TrackPoint[]>([]);
-  const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
-  const [loading, setLoading] = useState(true);
   const [resetKey, setResetKey] = useState(0);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
   const [soundOn, setSoundOn] = useState(() => localStorage.getItem('svante_sound') !== 'off');
-  const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth <= 768);
@@ -57,52 +55,6 @@ export default function SvanteMonitorPage({ mode }: Props) {
       localStorage.setItem('svante_sound', s ? 'off' : 'on');
       return !s;
     });
-  }, []);
-
-  // Početni snapshot
-  useEffect(() => {
-    fetchLiveVessels()
-      .then((data) => {
-        const map = new Map<number, VesselLive>();
-        for (const v of data.vessels ?? []) map.set(v.mmsi, v);
-        setVessels(map);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
-
-  // Live ažuriranja preko WebSocketa
-  useEffect(() => {
-    function connect() {
-      setWsStatus('connecting');
-      const ws = createWebSocket((data) => {
-        const msg = data as { type: string; vessels?: VesselLive[]; position?: VesselLive };
-        if (msg.type === 'snapshot' && Array.isArray(msg.vessels)) {
-          setVessels((prev) => {
-            const map = new Map(prev);
-            for (const v of msg.vessels!) map.set(v.mmsi, v);
-            return map;
-          });
-        } else if (msg.type === 'update' && msg.position?.mmsi != null) {
-          const pos = msg.position as VesselLive & { time?: string };
-          setVessels((prev) => {
-            const existing = prev.get(pos.mmsi);
-            const merged: VesselLive = {
-              ...existing,
-              ...pos,
-              last_seen: pos.time ?? pos.last_seen ?? existing?.last_seen ?? null,
-            };
-            return new Map(prev).set(pos.mmsi, merged);
-          });
-        }
-      });
-      ws.onopen = () => setWsStatus('connected');
-      ws.onclose = () => { setWsStatus('disconnected'); setTimeout(connect, 3000); };
-      ws.onerror = () => ws.close();
-      wsRef.current = ws;
-    }
-    connect();
-    return () => wsRef.current?.close();
   }, []);
 
   // Trag odabranog plovila (samo za prijavljene)
