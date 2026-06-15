@@ -165,10 +165,26 @@ export default function CharterAppShell() {
     return vesselList;
   }, [vesselList, filter]);
 
+  // Periodički osvježi prozor svježine kako bi zastarjeli brodovi nestali i bez
+  // novih WS poruka (i kako se filter ne bi računao na nasumičnom Date.now()).
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   const mapVessels = useMemo(() => {
-    const cutoff = Date.now() - 2 * 60 * 1000;
-    return filteredVessels.filter(v => v.last_seen != null && new Date(v.last_seen).getTime() >= cutoff);
-  }, [filteredVessels]);
+    const cutoff = now - 5 * 60 * 1000;
+    const fresh = filteredVessels.filter(
+      v => v.last_seen != null && new Date(v.last_seen).getTime() >= cutoff
+    );
+    // Odabrani brod ostaje na karti i kad zastari — ima otvoren panel i trail.
+    if (selectedMmsi != null && !fresh.some(v => v.mmsi === selectedMmsi)) {
+      const sel = vessels.get(selectedMmsi);
+      if (sel?.lat != null && sel?.lon != null) return [...fresh, sel];
+    }
+    return fresh;
+  }, [filteredVessels, selectedMmsi, vessels, now]);
 
   const liveTrack = useMemo(() => {
     if (selectedMmsi == null) return track;
