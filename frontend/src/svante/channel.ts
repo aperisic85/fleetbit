@@ -3,10 +3,9 @@
 // Obris kanala je usidren na stvarnim orijentirima:
 //  - južni ulaz: svjetionik Jadrija (43.7216, 15.8502) — tvrđava sv. Nikole (43.7214, 15.8547)
 //  - sjeverni izlaz: rt Martinska (~43.732, 15.877)
-// Međutočke obala su aproksimacija — zona je proširena prema jugoistoku
-// (~450–500 m širine) kako bi sigurno pokrila cijeli kanal; namjerno zalazi i
-// na kopno na JI strani. Po potrebi je fino podesi; sva logika čita samo ovaj
-// popis.
+// JI/I (istočna) obala je usidrena na izmjerenim točkama (izlaz → ulaz);
+// Z/SZ obala (Jadrija → izlaz) je još aproksimacija. Po potrebi je fino
+// podesi; sva logika čita samo ovaj popis.
 
 /** Ograničenje brzine u kanalu (čvorovi) */
 export const SPEED_LIMIT_KN = 5;
@@ -33,15 +32,17 @@ export const CHANNEL_POLYGON: [number, number][] = [
   [43.7310, 15.8668],
   [43.7325, 15.8720],
   [43.7336, 15.8766], // sjeverni rub izlaza (šibenska strana)
-  // JI/I rub — usidren na izmjerenoj istočnoj točki izlaza; rub namjerno
-  // zalazi na kopno JI obale da pokrije cijeli kanal
-  [43.728466, 15.881275], // izlaz, istočna (lijeva pri isplovljavanju) točka
-  [43.7280, 15.8767],
-  [43.7274, 15.8699],
-  [43.7257, 15.8651],
-  [43.7237, 15.8605],
-  [43.7216, 15.8573],
-  [43.7197, 15.8564], // južni ulaz, JI od tvrđave sv. Nikole
+  // JI/I (istočna) obala — izmjerene točke od izlaza prema ulazu
+  // (lijeva strana pri isplovljavanju iz Šibenika)
+  [43.728466, 15.881275],                   // izlaz, istočna točka
+  [43.726546063868334, 15.878468606361217],
+  [43.7271092831762, 15.874377627949121],
+  [43.72674725772394, 15.870704072513734],
+  [43.72489685730577, 15.866418472062692],
+  [43.72435357628185, 15.862689438653364],
+  [43.72403141718479, 15.859127352065451],
+  [43.71868224453116, 15.857736652433239],
+  [43.7158060187554, 15.855510973029963],   // ulaz, nasuprot svjetionika Jadrija
 ];
 
 /** Ray-casting test: nalazi li se točka unutar poligona kanala */
