@@ -95,7 +95,8 @@ export default function CharterAppShell() {
       addToast(`Replay spreman: ${REPLAY_WINDOW_H}h, ${byMmsi.size} brodova`, 'success');
     } catch (e) {
       console.error(e);
-      addToast('Replay podaci nisu dostupni', 'error');
+      const msg = e instanceof Error ? e.message : 'Replay podaci nisu dostupni';
+      addToast(msg, 'error');
       setReplayActive(false);
     } finally {
       setReplayLoading(false);

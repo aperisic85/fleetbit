@@ -82,7 +82,7 @@ export async function fetchTrack(mmsi: number, from?: string, to?: string, limit
 export async function fetchReplayRange(from: string, to: string, limit = 200000) {
   const params = new URLSearchParams({ from, to, limit: String(limit) });
   const res = await fetch(`${BASE}/replay/range?${params}`, { headers: authHeaders() });
-  if (!res.ok) throw new Error('Failed to fetch replay range');
+  if (!res.ok) throw await replayError(res, 'range');
   return res.json();
 }
 
@@ -93,8 +93,28 @@ export async function fetchReplayRange(from: string, to: string, limit = 200000)
 export async function fetchReplaySnapshot(at: string, windowMin = 30) {
   const params = new URLSearchParams({ at, window: String(windowMin) });
   const res = await fetch(`${BASE}/replay/snapshot?${params}`, { headers: authHeaders() });
-  if (!res.ok) throw new Error('Failed to fetch replay snapshot');
+  if (!res.ok) throw await replayError(res, 'snapshot');
   return res.json();
+}
+
+/**
+ * Gradi opisnu grešku za replay pozive: uključuje HTTP status i poruku
+ * servera ({ "error": ... }), uz objašnjenje za uobičajene slučajeve
+ * (401 nema prijave/istekao token, 404 backend bez replay rute).
+ */
+async function replayError(res: Response, kind: string): Promise<Error> {
+  let serverMsg = '';
+  try {
+    const body = await res.json();
+    serverMsg = typeof body?.error === 'string' ? body.error : '';
+  } catch {
+    // tijelo nije JSON
+  }
+  let hint = '';
+  if (res.status === 401) hint = 'Prijava je istekla — odjavi se i ponovo prijavi.';
+  else if (res.status === 404) hint = 'Replay nije dostupan na poslužitelju (zastarjela verzija API-ja).';
+  const detail = [serverMsg, hint].filter(Boolean).join(' — ');
+  return new Error(`Replay ${kind} (HTTP ${res.status})${detail ? `: ${detail}` : ''}`);
 }
 
 export async function fetchLiveAtons() {
