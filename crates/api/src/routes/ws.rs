@@ -42,6 +42,11 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
     let mut rx: broadcast::Receiver<Arc<shared::models::vessel::VesselPosition>> =
         state.position_tx.subscribe();
 
+    // Periodički keepalive: drži vezu toplom kroz proxyje i otkriva mrtve
+    // klijente (slanje na zatvoreni socket vrati grešku → petlja prekida).
+    let mut keepalive = tokio::time::interval(std::time::Duration::from_secs(25));
+    keepalive.tick().await; // prvi tick je trenutačan — preskoči ga
+
     loop {
         tokio::select! {
             result = rx.recv() => {
@@ -58,10 +63,28 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
                     Err(broadcast::error::RecvError::Closed) => break,
                 }
             }
+            _ = keepalive.tick() => {
+                // WebSocket ping frame — proxyji ga prepoznaju kao aktivnost.
+                if socket.send(Message::Ping(Vec::new().into())).await.is_err() {
+                    break;
+                }
+            }
             msg = socket.recv() => {
                 match msg {
                     Some(Ok(Message::Close(_))) | None => break,
-                    _ => {} // ignoriraj ping/pong i text od klijenta
+                    // Aplikacijski heartbeat: klijent šalje "ping", vraćamo "pong".
+                    // Browser ne izlaže ping/pong okvire JS-u, pa nam ovaj
+                    // tekstualni odgovor služi za detekciju žive veze na klijentu.
+                    Some(Ok(Message::Text(t))) if t.as_str() == "ping" => {
+                        if socket
+                            .send(Message::Text("{\"type\":\"pong\"}".into()))
+                            .await
+                            .is_err()
+                        {
+                            break;
+                        }
+                    }
+                    _ => {} // ostalo (pong, ostali text) ignoriraj
                 }
             }
         }

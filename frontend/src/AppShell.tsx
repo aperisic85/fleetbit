@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { VesselLive, TrackPoint, AtonLive, ReplayPosition } from './types';
-import { fetchLiveVessels, fetchTrack, createWebSocket, fetchLiveAtons, fetchReplayRange } from './api';
+import { fetchTrack, fetchLiveAtons, fetchReplayRange } from './api';
+import { useLiveVessels } from './useLiveVessels';
 import { Sidebar, type FilterStatus } from './components/Sidebar';
 import { LiveMap } from './components/LiveMap';
 import { VesselPanel } from './components/VesselPanel';
@@ -34,11 +35,9 @@ export default function AppShell() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [vessels, setVessels] = useState<Map<number, VesselLive>>(new Map());
+  const { vessels, wsStatus, loading } = useLiveVessels();
   const [selectedMmsi, setSelectedMmsi] = useState<number | null>(null);
   const [track, setTrack] = useState<TrackPoint[]>([]);
-  const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
-  const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [filter, setFilter] = useState<FilterStatus>('all');
@@ -47,7 +46,6 @@ export default function AppShell() {
   const [mode, setMode] = useState<'vessels' | 'atons'>('vessels');
   const [atons, setAtons] = useState<AtonLive[]>([]);
   const [atonsLoading, setAtonsLoading] = useState(false);
-  const wsRef = useRef<WebSocket | null>(null);
   const prevWsStatus = useRef<string>('connecting');
 
   // ── Replay (premotavanje stanja flote unatrag) ──────────────────────────
@@ -146,50 +144,6 @@ export default function AppShell() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  useEffect(() => {
-    fetchLiveVessels()
-      .then((data) => {
-        const map = new Map<number, VesselLive>();
-        for (const v of data.vessels ?? []) map.set(v.mmsi, v);
-        setVessels(map);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    function connect() {
-      setWsStatus('connecting');
-      const ws = createWebSocket((data) => {
-        const msg = data as { type: string; vessels?: VesselLive[]; position?: VesselLive };
-        if (msg.type === 'snapshot' && Array.isArray(msg.vessels)) {
-          setVessels((prev) => {
-            const map = new Map(prev);
-            for (const v of msg.vessels!) map.set(v.mmsi, v);
-            return map;
-          });
-        } else if (msg.type === 'update' && msg.position?.mmsi != null) {
-          const pos = msg.position as VesselLive & { time?: string };
-          setVessels((prev) => {
-            const existing = prev.get(pos.mmsi);
-            const merged: VesselLive = {
-              ...existing,
-              ...pos,
-              last_seen: pos.time ?? pos.last_seen ?? existing?.last_seen ?? null,
-            };
-            return new Map(prev).set(pos.mmsi, merged);
-          });
-        }
-      });
-      ws.onopen = () => setWsStatus('connected');
-      ws.onclose = () => { setWsStatus('disconnected'); setTimeout(connect, 3000); };
-      ws.onerror = () => ws.close();
-      wsRef.current = ws;
-    }
-    connect();
-    return () => wsRef.current?.close();
-  }, [addToast]);
 
   useEffect(() => {
     const prev = prevWsStatus.current;
