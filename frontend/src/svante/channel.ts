@@ -3,8 +3,10 @@
 // Obris kanala je usidren na stvarnim orijentirima:
 //  - južni ulaz: svjetionik Jadrija (43.7216, 15.8502) — tvrđava sv. Nikole (43.7214, 15.8547)
 //  - sjeverni izlaz: rt Martinska (~43.732, 15.877)
-// Međutočke obala su aproksimacija (zona ~230–270 m širine) — po potrebi ih
-// fino podesi; sva logika čita samo ovaj popis.
+// Međutočke obala su aproksimacija — zona je proširena prema jugoistoku
+// (~450–500 m širine) kako bi sigurno pokrila cijeli kanal; namjerno zalazi i
+// na kopno na JI strani. Po potrebi je fino podesi; sva logika čita samo ovaj
+// popis.
 
 /** Ograničenje brzine u kanalu (čvorovi) */
 export const SPEED_LIMIT_KN = 5;
@@ -13,7 +15,7 @@ export const SPEED_LIMIT_KN = 5;
 export const CHANNEL_AXIS_DEG = 58;
 
 /** Centar kanala — početni fokus karte */
-export const CHANNEL_CENTER: [number, number] = [43.7274, 15.8640];
+export const CHANNEL_CENTER: [number, number] = [43.7265, 15.8665];
 export const CHANNEL_ZOOM = 15;
 
 /**
@@ -31,14 +33,15 @@ export const CHANNEL_POLYGON: [number, number][] = [
   [43.7310, 15.8668],
   [43.7325, 15.8720],
   [43.7336, 15.8766], // sjeverni rub izlaza (šibenska strana)
-  // JI/I obala — od rta Martinska natrag prema tvrđavi sv. Nikole
-  [43.7318, 15.8774], // rt Martinska
-  [43.7305, 15.8730],
-  [43.7291, 15.8684],
-  [43.7274, 15.8636],
-  [43.7254, 15.8590],
-  [43.7233, 15.8558],
-  [43.7214, 15.8549], // tvrđava sv. Nikole
+  // JI/I rub — proširen ~220 m prema jugoistoku da pokrije cijeli kanal
+  // (rub namjerno zalazi na kopno JI obale)
+  [43.7301, 15.8789], // izlaz, JI od rta Martinska
+  [43.7288, 15.8745],
+  [43.7274, 15.8699],
+  [43.7257, 15.8651],
+  [43.7237, 15.8605],
+  [43.7216, 15.8573],
+  [43.7197, 15.8564], // južni ulaz, JI od tvrđave sv. Nikole
 ];
 
 /** Ray-casting test: nalazi li se točka unutar poligona kanala */
