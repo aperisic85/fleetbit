@@ -33,10 +33,10 @@ export const CHANNEL_POLYGON: [number, number][] = [
   [43.7310, 15.8668],
   [43.7325, 15.8720],
   [43.7336, 15.8766], // sjeverni rub izlaza (šibenska strana)
-  // JI/I rub — proširen ~220 m prema jugoistoku da pokrije cijeli kanal
-  // (rub namjerno zalazi na kopno JI obale)
-  [43.7301, 15.8789], // izlaz, JI od rta Martinska
-  [43.7288, 15.8745],
+  // JI/I rub — usidren na izmjerenoj istočnoj točki izlaza; rub namjerno
+  // zalazi na kopno JI obale da pokrije cijeli kanal
+  [43.728466, 15.881275], // izlaz, istočna (lijeva pri isplovljavanju) točka
+  [43.7280, 15.8767],
   [43.7274, 15.8699],
   [43.7257, 15.8651],
   [43.7237, 15.8605],
