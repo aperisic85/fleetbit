@@ -10,11 +10,13 @@ export type WsStatus = 'connecting' | 'connected' | 'disconnected';
 // sljedećim ispravnim očitanjem vrati — i tako stalno. Ove provjere odbacuju
 // nemoguće skokove i nevažeće koordinate.
 
-// Najveća uvjerljiva brzina broda (čvorovi). Pomak koji bi tražio veću brzinu
-// znači da je nova pozicija šum, ne stvarno kretanje.
-const MAX_PLAUSIBLE_SPEED_KN = 120;
-// Ispod ovog pomaka ne provjeravamo brzinu (sitni jitter na vezu/sidru).
-const MIN_JUMP_NM = 0.5;
+// Najveća uvjerljiva brzina broda (čvorovi) — tvrda gornja granica. Pomak koji
+// bi tražio veću brzinu sigurno je šum, ne stvarno kretanje.
+const MAX_PLAUSIBLE_SPEED_KN = 90;
+// Ispod ovog pomaka ne provjeravamo brzinu (sitni GPS jitter na vezu/sidru).
+const MIN_JUMP_NM = 0.4;
+// Dva ~istovremena javljanja udaljena više od ovoga = pogreška (nemoguće).
+const MAX_SIMULTANEOUS_NM = 2;
 
 /** Jesu li koordinate valjane (raspon + nije "Null Island" 0,0). */
 export function isValidLatLon(
@@ -46,16 +48,32 @@ function distanceNm(aLat: number, aLon: number, bLat: number, bLon: number): num
 /**
  * Je li nova pozicija fizički nemoguća s obzirom na prethodnu (predaleko za
  * proteklo vrijeme)? Ako da — riječ je o pogrešnom očitanju i treba ga odbaciti.
+ * Dozvoljena brzina ovisi o prijavljenom SOG-u: usidreni/spori brodovi ne smiju
+ * "skočiti", dok se brzim plovilima ostavlja velikodušna granica.
  */
-function isTeleport(prev: VesselLive, lat: number, lon: number, newTimeMs: number): boolean {
+function isTeleport(
+  prev: VesselLive,
+  lat: number,
+  lon: number,
+  newTimeMs: number,
+  newSog: number | null | undefined,
+): boolean {
   if (prev.lat == null || prev.lon == null || prev.last_seen == null) return false;
   const prevMs = new Date(prev.last_seen).getTime();
-  const dtSec = (newTimeMs - prevMs) / 1000;
-  if (!Number.isFinite(dtSec) || dtSec <= 0) return false; // staro/istovremeno — ne sudimo po brzini
+  if (!Number.isFinite(prevMs)) return false;
   const distNm = distanceNm(prev.lat, prev.lon, lat, lon);
-  if (distNm < MIN_JUMP_NM) return false;
-  const speedKn = distNm / (dtSec / 3600);
-  return speedKn > MAX_PLAUSIBLE_SPEED_KN;
+  if (distNm < MIN_JUMP_NM) return false; // sitni jitter — prihvati
+
+  const dtSec = (newTimeMs - prevMs) / 1000;
+  // Istovremena ili obrnuto-poredana javljanja: ne možemo suditi po brzini, pa
+  // veliki razmak tretiramo kao pogrešku.
+  if (!Number.isFinite(dtSec) || dtSec <= 1) return distNm > MAX_SIMULTANEOUS_NM;
+
+  const impliedKn = distNm / (dtSec / 3600);
+  // Granica: velikodušno iznad prijavljenog SOG-a, ali nikad iznad tvrde gornje.
+  const sog = Math.max(prev.sog ?? 0, newSog ?? 0, 0);
+  const allowed = Math.min(MAX_PLAUSIBLE_SPEED_KN, Math.max(sog * 2 + 15, 35));
+  return impliedKn > allowed;
 }
 
 /** Spaja jednu 'update' poruku u mapu brodova uz validaciju pozicije. */
@@ -73,7 +91,7 @@ function applyUpdate(
 
   if (isValidLatLon(position.lat, position.lon)) {
     // Odbaci nemoguć skok pozicije — zadrži postojeću (ispravnu) lokaciju.
-    if (existing && isTeleport(existing, position.lat, position.lon!, newTimeMs)) {
+    if (existing && isTeleport(existing, position.lat, position.lon!, newTimeMs, position.sog)) {
       return prev;
     }
   } else {

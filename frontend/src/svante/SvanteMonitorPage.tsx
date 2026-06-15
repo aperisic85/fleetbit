@@ -74,11 +74,17 @@ export default function SvanteMonitorPage({ mode }: Props) {
   // Samo svježa plovila (zadnjih 10 min) — lokalna zona, AIS javlja često
   const mapVessels = useMemo(() => {
     const cutoff = now - 10 * 60 * 1000;
-    return Array.from(vessels.values()).filter(
+    const fresh = Array.from(vessels.values()).filter(
       (v) => v.lat != null && v.lon != null
         && v.last_seen != null && new Date(v.last_seen).getTime() >= cutoff
     );
-  }, [vessels, now]);
+    // Odabrani brod ostaje na karti i kad zastari — ima otvoren panel i trail.
+    if (selectedMmsi != null && !fresh.some(v => v.mmsi === selectedMmsi)) {
+      const sel = vessels.get(selectedMmsi);
+      if (sel?.lat != null && sel?.lon != null) return [...fresh, sel];
+    }
+    return fresh;
+  }, [vessels, now, selectedMmsi]);
 
   const watch = useChannelWatch(mapVessels, soundOn);
 
