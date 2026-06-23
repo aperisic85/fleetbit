@@ -21,9 +21,9 @@ export function EventLog({ events, isMobile }: { events: ChannelEvent[]; isMobil
           bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
           right: 12,
           zIndex: 1000,
-          background: 'rgba(10,16,30,0.92)',
-          border: `1px solid ${hasAlarm ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.12)'}`,
-          color: hasAlarm ? '#f87171' : '#94a3b8',
+          background: 'color-mix(in srgb, var(--bg-surface) 92%, transparent)',
+          border: `1px solid ${hasAlarm ? 'rgba(239,68,68,0.5)' : 'var(--border-color)'}`,
+          color: hasAlarm ? '#f87171' : 'var(--text-secondary)',
           borderRadius: 8,
           padding: '7px 12px',
           fontSize: 12,
@@ -47,9 +47,9 @@ export function EventLog({ events, isMobile }: { events: ChannelEvent[]; isMobil
       right: 12,
       zIndex: 1000,
       width: isMobile ? 'calc(100% - 24px)' : 308,
-      background: 'rgba(10,16,30,0.92)',
+      background: 'color-mix(in srgb, var(--bg-surface) 92%, transparent)',
       backdropFilter: 'blur(10px)',
-      border: '1px solid rgba(255,255,255,0.10)',
+      border: '1px solid var(--border-color)',
       borderRadius: 12,
       overflow: 'hidden',
       boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
@@ -57,14 +57,14 @@ export function EventLog({ events, isMobile }: { events: ChannelEvent[]; isMobil
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '8px 12px',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--border-color)',
       }}>
-        <span style={{ fontSize: 10, fontWeight: 800, color: '#7dd3fc', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+        <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)' }}>
           📋 Dnevnik događaja
         </span>
         <button
           onClick={() => setOpen(false)}
-          style={{ background: 'transparent', border: 'none', color: '#64748b', fontSize: 15, cursor: 'pointer', lineHeight: 1, padding: '0 2px' }}
+          style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', fontSize: 15, cursor: 'pointer', lineHeight: 1, padding: '0 2px' }}
         >
           ×
         </button>
@@ -72,7 +72,7 @@ export function EventLog({ events, isMobile }: { events: ChannelEvent[]; isMobil
 
       <div style={{ maxHeight: isMobile ? 130 : 190, overflowY: 'auto', padding: '6px 10px' }}>
         {events.length === 0 ? (
-          <div style={{ fontSize: 11, color: '#475569', padding: '10px 4px', textAlign: 'center' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-dimmer)', padding: '10px 4px', textAlign: 'center' }}>
             Nema zabilježenih događaja
           </div>
         ) : (
@@ -83,13 +83,13 @@ export function EventLog({ events, isMobile }: { events: ChannelEvent[]; isMobil
                 background: TYPE_COLOR[e.type], marginTop: 4,
                 boxShadow: e.type !== 'info' ? `0 0 6px ${TYPE_COLOR[e.type]}` : 'none',
               }} />
-              <span style={{ fontSize: 10, color: '#64748b', flexShrink: 0, fontVariantNumeric: 'tabular-nums', marginTop: 1 }}>
+              <span style={{ fontSize: 10, color: 'var(--text-dim)', flexShrink: 0, fontVariantNumeric: 'tabular-nums', marginTop: 1, fontFamily: 'var(--font-mono)' }}>
                 {e.time.toLocaleTimeString('hr-HR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </span>
               <span style={{
                 fontSize: 11,
                 lineHeight: 1.35,
-                color: e.type === 'alarm' ? '#f87171' : e.type === 'warning' ? '#fbbf24' : '#cbd5e1',
+                color: e.type === 'alarm' ? '#f87171' : e.type === 'warning' ? '#fbbf24' : 'var(--text-secondary)',
                 fontWeight: e.type === 'info' ? 400 : 600,
               }}>
                 {e.text}

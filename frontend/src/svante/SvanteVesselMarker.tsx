@@ -1,6 +1,7 @@
 import { Marker, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import type { VesselLive } from '../types';
+import { ACCENT_GREEN } from '../lib/shipType';
 import { SPEED_LIMIT_KN } from './channel';
 import type { ChannelVessel } from './useChannelWatch';
 
@@ -29,7 +30,7 @@ function buildIcon(v: VesselLive, opts: { selected: boolean; inChannel: boolean;
   const ring = opts.speeding
     ? `<div style="position:absolute;top:50%;left:50%;width:36px;height:36px;margin:-18px 0 0 -18px;border-radius:50%;border:2.5px solid #ef4444;animation:pulseRing 0.9s ease-out infinite;pointer-events:none;"></div>`
     : opts.inChannel
-    ? `<div style="position:absolute;top:50%;left:50%;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;border:2px solid #22d3ee;opacity:0.85;pointer-events:none;"></div>`
+    ? `<div style="position:absolute;top:50%;left:50%;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;border:2px solid ${ACCENT_GREEN};opacity:0.85;pointer-events:none;"></div>`
     : opts.selected
     ? `<div style="position:absolute;top:50%;left:50%;width:32px;height:32px;margin:-16px 0 0 -16px;border-radius:50%;border:2px solid #f59e0b;animation:pulseRing 1.4s ease-out infinite;pointer-events:none;"></div>`
     : '';
@@ -75,7 +76,7 @@ export function SvanteVesselMarker({ vessel, channelInfo, selected, onClick }: P
 
   const inChannel = channelInfo != null;
   const speeding = channelInfo?.speeding ?? false;
-  const color = speeding ? '#ef4444' : inChannel ? '#22d3ee' : vesselColor(vessel);
+  const color = speeding ? '#ef4444' : inChannel ? ACCENT_GREEN : vesselColor(vessel);
   const sog = vessel.sog;
 
   const statusText = speeding
@@ -100,8 +101,8 @@ export function SvanteVesselMarker({ vessel, channelInfo, selected, onClick }: P
       <Tooltip direction="top" offset={[0, -10]} opacity={1} className="vessel-tooltip">
         <div style={{ minWidth: 148, maxWidth: 210 }}>
           <div style={{
-            fontWeight: 700, fontSize: 12, color: '#e2e8f0', marginBottom: 6,
-            borderBottom: '1px solid #334155', paddingBottom: 5,
+            fontWeight: 700, fontSize: 12, color: 'var(--text-primary)', marginBottom: 6,
+            borderBottom: '1px solid var(--border-color)', paddingBottom: 5,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {vessel.name ?? `MMSI ${vessel.mmsi}`}
@@ -111,18 +112,18 @@ export function SvanteVesselMarker({ vessel, channelInfo, selected, onClick }: P
             <span style={{ fontSize: 11, color, fontWeight: 600 }}>{statusText}</span>
           </div>
           {(vessel.cog != null || (vessel.heading != null && vessel.heading !== 511)) && (
-            <div style={{ display: 'flex', gap: 10, fontSize: 10, color: '#94a3b8', marginBottom: 5 }}>
+            <div style={{ display: 'flex', gap: 10, fontSize: 10, color: 'var(--text-secondary)', marginBottom: 5 }}>
               {vessel.cog != null && (
-                <span><span style={{ color: '#64748b' }}>COG </span><span style={{ color: '#cbd5e1' }}>{vessel.cog.toFixed(0)}°</span></span>
+                <span><span style={{ color: 'var(--text-dim)' }}>COG </span><span style={{ color: 'var(--text-secondary)' }}>{vessel.cog.toFixed(0)}°</span></span>
               )}
               {vessel.heading != null && vessel.heading !== 511 && (
-                <span><span style={{ color: '#64748b' }}>HDG </span><span style={{ color: '#cbd5e1' }}>{vessel.heading}°</span></span>
+                <span><span style={{ color: 'var(--text-dim)' }}>HDG </span><span style={{ color: 'var(--text-secondary)' }}>{vessel.heading}°</span></span>
               )}
             </div>
           )}
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#475569' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-dimmer)' }}>
             <span>MMSI {vessel.mmsi}</span>
-            {vessel.last_seen && <span style={{ color: '#334155' }}>{formatLastSeen(vessel.last_seen)} ago</span>}
+            {vessel.last_seen && <span style={{ color: 'var(--text-dim)' }}>{formatLastSeen(vessel.last_seen)} ago</span>}
           </div>
         </div>
       </Tooltip>

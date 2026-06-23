@@ -62,7 +62,7 @@ export function SvanteMap({ vessels, watch, selectedMmsi, track, onSelect, reset
       <MapContainer
         center={MAP_CENTER}
         zoom={MAP_ZOOM}
-        style={{ width: '100%', height: '100%', background: '#0a0f1a' }}
+        style={{ width: '100%', height: '100%', background: 'var(--bg-base)' }}
         zoomControl={false}
       >
         <ZoomControl position="bottomright" />
