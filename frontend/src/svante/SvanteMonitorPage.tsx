@@ -11,6 +11,8 @@ import { AlertBanner } from './AlertBanner';
 import { EventLog } from './EventLog';
 import { useChannelWatch } from './useChannelWatch';
 
+const MONO = "'IBM Plex Mono', ui-monospace, monospace";
+
 function Clock() {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -18,7 +20,7 @@ function Clock() {
     return () => clearInterval(id);
   }, []);
   return (
-    <span style={{ fontSize: 13, fontWeight: 700, color: '#7dd3fc', fontVariantNumeric: 'tabular-nums', letterSpacing: '0.05em' }}>
+    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)', fontFamily: MONO, fontVariantNumeric: 'tabular-nums', letterSpacing: '0.05em' }}>
       {now.toLocaleTimeString('hr-HR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
     </span>
   );
@@ -94,10 +96,10 @@ export default function SvanteMonitorPage({ mode }: Props) {
   }, []);
 
   const wsCfg = wsStatus === 'connected'
-    ? { color: '#34d399', label: 'LIVE', pulse: true }
+    ? { color: 'var(--accent)', bg: 'var(--accent-soft)', border: 'var(--accent-border)', label: 'LIVE', pulse: true }
     : wsStatus === 'connecting'
-    ? { color: '#f59e0b', label: 'SPAJANJE', pulse: true }
-    : { color: '#f87171', label: 'OFFLINE', pulse: false };
+    ? { color: 'var(--c-warning)', bg: 'color-mix(in srgb, var(--c-warning) 16%, transparent)', border: 'color-mix(in srgb, var(--c-warning) 40%, transparent)', label: 'SPAJANJE', pulse: true }
+    : { color: 'var(--c-alarm)', bg: 'color-mix(in srgb, var(--c-alarm) 16%, transparent)', border: 'color-mix(in srgb, var(--c-alarm) 40%, transparent)', label: 'OFFLINE', pulse: false };
 
   const bannerActive = watch.level === 'meeting' || watch.level === 'speeding';
   const panelTop = isMobile && bannerActive ? 86 : 12;
@@ -108,8 +110,8 @@ export default function SvanteMonitorPage({ mode }: Props) {
       height: '100vh',
       display: 'flex',
       flexDirection: 'column',
-      background: '#0a0f1a',
-      fontFamily: 'system-ui, sans-serif',
+      background: 'var(--bg-base)',
+      fontFamily: 'var(--font-sans, system-ui, sans-serif)',
       overflow: 'hidden',
     }}>
       {/* ── Zaglavlje ── */}
@@ -121,23 +123,23 @@ export default function SvanteMonitorPage({ mode }: Props) {
         padding: '0 16px',
         height: 52,
         flexShrink: 0,
-        background: 'linear-gradient(180deg, rgba(15,23,42,0.98), rgba(10,16,30,0.96))',
-        borderBottom: '1px solid rgba(56,189,248,0.15)',
+        background: 'linear-gradient(180deg, var(--bg-surface), var(--bg-base))',
+        borderBottom: '1px solid var(--border-color)',
         zIndex: 1100,
       }}>
         <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
           <span style={{
             width: 32, height: 32, borderRadius: 9, flexShrink: 0,
-            background: 'linear-gradient(135deg, #0ea5e9, #0c4a6e)',
+            background: 'linear-gradient(135deg, var(--accent), #0b3b2a)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 17, boxShadow: '0 0 14px rgba(14,165,233,0.35)',
+            fontSize: 17, boxShadow: '0 0 14px color-mix(in srgb, var(--accent) 38%, transparent)',
           }}>⚓</span>
           <span style={{ minWidth: 0 }}>
-            <span style={{ display: 'block', fontWeight: 800, fontSize: 15, color: '#e2e8f0', letterSpacing: '0.01em', whiteSpace: 'nowrap' }}>
-              Kanal <span style={{ color: '#38bdf8' }}>sv. Ante</span>
+            <span style={{ display: 'block', fontWeight: 800, fontSize: 15, color: 'var(--text-primary)', letterSpacing: '0.01em', whiteSpace: 'nowrap' }}>
+              Kanal <span style={{ color: 'var(--accent)' }}>sv. Ante</span>
             </span>
             {!isMobile && (
-              <span style={{ display: 'block', fontSize: 10, color: '#64748b', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+              <span style={{ display: 'block', fontSize: 10, color: 'var(--text-dim)', letterSpacing: '0.14em', textTransform: 'uppercase', fontFamily: MONO }}>
                 VTS nadzor prolaska · Šibenik
               </span>
             )}
@@ -150,9 +152,9 @@ export default function SvanteMonitorPage({ mode }: Props) {
           {/* WS status */}
           <span style={{
             display: 'flex', alignItems: 'center', gap: 6,
-            fontSize: 10, fontWeight: 800, color: wsCfg.color, letterSpacing: '0.08em',
-            background: `${wsCfg.color}16`,
-            border: `1px solid ${wsCfg.color}40`,
+            fontSize: 10, fontWeight: 800, color: wsCfg.color, letterSpacing: '0.08em', fontFamily: MONO,
+            background: wsCfg.bg,
+            border: `1px solid ${wsCfg.border}`,
             borderRadius: 14, padding: '4px 10px',
           }}>
             <span style={{
@@ -167,8 +169,8 @@ export default function SvanteMonitorPage({ mode }: Props) {
             onClick={toggleSound}
             title={soundOn ? 'Isključi zvučni alarm' : 'Uključi zvučni alarm'}
             style={{
-              background: soundOn ? 'rgba(56,189,248,0.12)' : 'transparent',
-              border: `1px solid ${soundOn ? 'rgba(56,189,248,0.35)' : 'rgba(255,255,255,0.12)'}`,
+              background: soundOn ? 'var(--accent-soft)' : 'transparent',
+              border: `1px solid ${soundOn ? 'var(--accent-border)' : 'var(--border-color)'}`,
               borderRadius: 8, padding: '5px 9px', fontSize: 14, cursor: 'pointer', lineHeight: 1,
             }}
           >
@@ -179,15 +181,15 @@ export default function SvanteMonitorPage({ mode }: Props) {
           {mode === 'app' && user ? (
             <>
               {!isMobile && (
-                <span style={{ fontSize: 12, color: '#94a3b8', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {user.company_name ?? user.email}
                 </span>
               )}
               <button
                 onClick={() => { logout(); navigate('/', { replace: true }); }}
                 style={{
-                  background: 'transparent', border: '1px solid rgba(255,255,255,0.12)',
-                  color: '#94a3b8', borderRadius: 8, padding: '5px 12px', fontSize: 12, cursor: 'pointer',
+                  background: 'transparent', border: '1px solid var(--border-color)',
+                  color: 'var(--text-secondary)', borderRadius: 8, padding: '5px 12px', fontSize: 12, cursor: 'pointer',
                 }}
               >
                 Odjava
@@ -195,14 +197,14 @@ export default function SvanteMonitorPage({ mode }: Props) {
             </>
           ) : isAuthenticated ? (
             <Link to="/app" style={{
-              background: '#0ea5e9', color: '#fff', textDecoration: 'none',
+              background: 'var(--accent)', color: 'var(--bg-base)', textDecoration: 'none',
               fontSize: 12, padding: '6px 14px', borderRadius: 8, fontWeight: 700, whiteSpace: 'nowrap',
             }}>
               Otvori nadzor
             </Link>
           ) : (
             <Link to="/login" style={{
-              background: '#0ea5e9', color: '#fff', textDecoration: 'none',
+              background: 'var(--accent)', color: 'var(--bg-base)', textDecoration: 'none',
               fontSize: 12, padding: '6px 14px', borderRadius: 8, fontWeight: 700, whiteSpace: 'nowrap',
             }}>
               Prijava
@@ -217,7 +219,7 @@ export default function SvanteMonitorPage({ mode }: Props) {
           <div style={{
             position: 'absolute', inset: 0, zIndex: 1200,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12,
-            background: '#0a0f1a', color: '#64748b', fontSize: 14,
+            background: 'var(--bg-base)', color: 'var(--text-dim)', fontSize: 14,
           }}>
             <span style={{ fontSize: 30, animation: 'wsPulse 1.2s ease-in-out infinite' }}>⚓</span>
             Učitavanje nadzora kanala...
@@ -270,9 +272,9 @@ export default function SvanteMonitorPage({ mode }: Props) {
             bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
             left: 12,
             zIndex: 1000,
-            background: 'rgba(10,16,30,0.92)',
-            border: '1px solid rgba(56,189,248,0.3)',
-            color: '#7dd3fc',
+            background: 'color-mix(in srgb, var(--bg-surface) 92%, transparent)',
+            border: '1px solid var(--accent-border)',
+            color: 'var(--accent)',
             borderRadius: 8,
             padding: '7px 12px',
             fontSize: 12,
@@ -295,17 +297,17 @@ export default function SvanteMonitorPage({ mode }: Props) {
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 1000,
-            background: 'rgba(10,16,30,0.9)',
-            border: '1px solid rgba(56,189,248,0.2)',
+            background: 'color-mix(in srgb, var(--bg-surface) 90%, transparent)',
+            border: '1px solid var(--border-color)',
             borderRadius: 10,
             padding: '8px 16px',
             fontSize: 12,
-            color: '#94a3b8',
+            color: 'var(--text-secondary)',
             backdropFilter: 'blur(8px)',
             whiteSpace: 'nowrap',
           }}>
             Za detalje o plovilima{' '}
-            <Link to="/login" style={{ color: '#38bdf8', textDecoration: 'none', fontWeight: 700 }}>prijavite se</Link>
+            <Link to="/login" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 700 }}>prijavite se</Link>
           </div>
         )}
       </div>
