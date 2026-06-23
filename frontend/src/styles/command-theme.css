@@ -1,0 +1,91 @@
+/* ────────────────────────────────────────────────────────────────────────
+   Fleetbit — Command Center tema
+   Drop-in: importaj JEDNOM u entry (main-charter.tsx) NAKON index.css:
+       import './index.css';
+       import './styles/command-theme.css';
+
+   Override-a postojeće CSS varijable (--bg-*, --text-*, --border-color), pa
+   SVE postojeće komponente automatski preuzmu novu paletu. Dodaje i
+   --accent* tokene koje koriste nove Command komponente.
+   ──────────────────────────────────────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Command-center paleta (tamna) */
+  --bg-base:          #0a0f14;
+  --bg-surface:       #0b1118;
+  --bg-surface-hover: #16212c;
+  --border-color:     #1f2c39;
+  --text-primary:     #e8eef2;
+  --text-secondary:   #9fb0bd;
+  --text-muted:       #9fb0bd;
+  --text-dim:         #5f7180;
+  --text-dimmer:      #46586a;
+  --skeleton-from:    #0e1620;
+  --skeleton-to:      #16212c;
+
+  /* Akcent — radar zelena */
+  --accent:        #35e08d;
+  --accent-soft:   color-mix(in srgb, var(--accent) 14%, transparent);
+  --accent-border: color-mix(in srgb, var(--accent) 36%, transparent);
+
+  /* Status (zadržano iz IALA / AIS konvencija) */
+  --c-alarm:   #ef4444;
+  --c-warning: #f59e0b;
+  --c-ok:      #2bbf6e;
+  --c-info:    #38bdf8;
+
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+/* Svjetla tema — zadrži zelenu, posvijetli podlogu */
+[data-theme="light"] {
+  --bg-base:          #eef2f5;
+  --bg-surface:       #ffffff;
+  --bg-surface-hover: #e6edf2;
+  --border-color:     #cbd8e0;
+  --text-primary:     #0c1620;
+  --text-secondary:   #4a5b68;
+  --text-muted:       #4a5b68;
+  --text-dim:         #6b7f8e;
+  --text-dimmer:      #93a4b1;
+  --skeleton-from:    #dde6ec;
+  --skeleton-to:      #eef3f6;
+  --accent:           #128a52;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabularni brojevi i mono za sve tehničke vrijednosti dobivaju IBM Plex Mono
+   tamo gdje komponenta to zatraži preko klase. */
+.cc-mono { font-family: var(--font-mono); }
+
+/* Radar/command keyframes — koriste ih Command komponente */
+@keyframes ccLiveDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(0.78); }
+}
+@keyframes ccRadarSweep {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
+}
+@keyframes ccBlink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.2; }
+}
+
+/* Tanki tamni scrollbar */
+.cc-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.cc-scroll::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+.cc-scroll::-webkit-scrollbar-track { background: transparent; }
+.cc-scroll { scrollbar-width: thin; scrollbar-color: var(--border-color) transparent; }
+
+/* Leaflet — uskladi tooltip s command paletom (LiveMap ostaje Leaflet) */
+.leaflet-tooltip.vessel-tooltip {
+  font-family: var(--font-sans) !important;
+}
