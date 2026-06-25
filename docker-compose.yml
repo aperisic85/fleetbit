@@ -9,7 +9,7 @@ services:
     volumes:
       - fleetbit_data:/var/lib/postgresql/data
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U fleetbit"]
       interval: 5s
@@ -96,7 +96,7 @@ services:
       dockerfile: Dockerfile.ingestor
     container_name: fleetbit_ingestor
     environment:
-      DATABASE_URL: postgres://fleetbit:fleetbit@127.0.0.1:5432/fleetbit
+      DATABASE_URL: postgres://fleetbit:fleetbit@127.0.0.1:5433/fleetbit
       RUST_LOG: info
       STATIONS_CONFIG: /config/stations.toml
     volumes:
