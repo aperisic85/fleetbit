@@ -299,6 +299,7 @@ export default function SvanteMonitorPage({ mode }: Props) {
           <CollisionPanel
             level={collision.level}
             encounters={collision.encounters}
+            staleVessels={collision.staleVessels}
             onSelect={handleSelect}
             isMobile={isMobile}
             topOffset={panelTop}

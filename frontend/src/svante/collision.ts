@@ -31,6 +31,14 @@ export const TCPA_HORIZON_S = parseFloat(import.meta.env.VITE_TCPA_HORIZON_S ?? 
 export const PREDICT_S = parseFloat(import.meta.env.VITE_PREDICT_S ?? '240');
 /** Plovila sporija od ovoga (kn) tretiraju se kao stacionarna i preskaču. */
 export const MIN_SPEED_KN = parseFloat(import.meta.env.VITE_COLLISION_MIN_SPEED_KN ?? '0.5');
+/**
+ * Najveća starost AIS očitanja (s) da bi plovilo ušlo u detekciju sudara.
+ * AIS feed zna kasniti 2–5 min; u uskom Kanalu sv. Ante brod za 1 min prijeđe
+ * znatan dio kanala, pa pozicija starija od ovoga više ne opisuje stvarno stanje
+ * i CPA/TCPA postaju besmisleni. Takva plovila se izostavljaju iz računa (i
+ * zasebno javljaju operateru). Konfigurabilno preko VITE_COLLISION_MAX_AGE_S.
+ */
+export const MAX_DATA_AGE_S = parseFloat(import.meta.env.VITE_COLLISION_MAX_AGE_S ?? '60');
 
 // ── Projekcija ───────────────────────────────────────────────────────────────
 
@@ -59,19 +67,39 @@ function velocity(sogKn: number, courseDeg: number): Vec {
 
 export interface Kinematics {
   vessel: VesselLive;
-  pos: Vec;
+  pos: Vec;      // dead-reckoning pozicija u trenutku `now` (ne sirovo očitanje)
   vel: Vec;
   course: number; // °
   speed: number;  // kn
+  age: number;    // s — starost zadnjeg AIS očitanja u trenutku `now`
 }
 
-/** Izvuci kinematiku iz live pozicije; null ako nema dovoljno podataka. */
-export function kinematics(v: VesselLive): Kinematics | null {
+/** Starost AIS očitanja (s) u trenutku `nowMs`; 0 ako nema vremenske oznake. */
+export function dataAge(v: VesselLive, nowMs: number): number {
+  if (!v.last_seen) return 0;
+  const t = new Date(v.last_seen).getTime();
+  if (!Number.isFinite(t)) return 0;
+  return Math.max(0, (nowMs - t) / 1000);
+}
+
+/**
+ * Izvuci kinematiku iz live pozicije; null ako nema dovoljno podataka.
+ *
+ * Pozicija se dead-reckoningom pomiče iz zadnjeg očitanja do `nowMs` po
+ * prijavljenom vektoru brzine. Tako svi brodovi ulaze u CPA račun na istom
+ * vremenu (inače bi se uspoređivale pozicije različite starosti) i djelomično se
+ * kompenzira kašnjenje AIS feeda.
+ */
+export function kinematics(v: VesselLive, nowMs: number = Date.now()): Kinematics | null {
   if (v.lat == null || v.lon == null) return null;
   const course = v.cog ?? v.heading;
   if (course == null || course === 511) return null; // 511 = nedostupno (AIS)
   const speed = v.sog ?? 0;
-  return { vessel: v, pos: toXY(v.lat, v.lon), vel: velocity(speed, course), course, speed };
+  const age = dataAge(v, nowMs);
+  const vel = velocity(speed, course);
+  const raw = toXY(v.lat, v.lon);
+  const pos = { x: raw.x + vel.x * age, y: raw.y + vel.y * age };
+  return { vessel: v, pos, vel, course, speed, age };
 }
 
 /** Predviđena pozicija nakon `seconds` sekundi pravocrtnog gibanja. */
@@ -213,6 +241,7 @@ export interface Encounter {
   tcpa: number;          // s
   range: number;         // NM (trenutna udaljenost)
   cri: number;           // 0..1
+  age: number;           // s — starost najstarijeg od dvaju očitanja
   level: RiskLevel;
   colreg: ColregResult;
   cpaA: [number, number]; // predviđena pozicija A u trenutku CPA
@@ -228,13 +257,15 @@ function pairId(a: number, b: number): string {
  * `envFactor` (default 1) pojačava CRI u lošim uvjetima. Rezultat je sortiran
  * po CRI silazno.
  */
-export function computeEncounters(vessels: VesselLive[], envFactor = 1): Encounter[] {
+export function computeEncounters(vessels: VesselLive[], envFactor = 1, nowMs = Date.now()): Encounter[] {
   const ks: Kinematics[] = [];
   for (const v of vessels) {
     // Preskoči usidrena/privezana i (gotovo) stacionarna plovila.
     if (v.nav_status === 1 || v.nav_status === 5) continue;
-    const k = kinematics(v);
+    const k = kinematics(v, nowMs);
     if (!k || k.speed < MIN_SPEED_KN) continue;
+    // Prestari podaci — pozicija više nije pouzdana za CPA/TCPA. Izostavi.
+    if (k.age > MAX_DATA_AGE_S) continue;
     ks.push(k);
   }
 
@@ -256,6 +287,7 @@ export function computeEncounters(vessels: VesselLive[], envFactor = 1): Encount
         tcpa: c.tcpa,
         range: c.range,
         cri,
+        age: Math.max(a.age, b.age),
         level,
         colreg: classifyColreg(a, b),
         cpaA: predict(a, c.tcpa),
@@ -267,9 +299,39 @@ export function computeEncounters(vessels: VesselLive[], envFactor = 1): Encount
   return out;
 }
 
+/**
+ * Plovila koja se kreću kroz nadzornu zonu, ali su im AIS podaci prestari
+ * (stariji od MAX_DATA_AGE_S) za pouzdanu detekciju sudara. Vraća se zasebno da
+ * operater zna da je nadzor degradiran — brod je prisutan, ali izvan CPA računa.
+ */
+export function staleMovingVessels(
+  vessels: VesselLive[],
+  nowMs = Date.now(),
+): { vessel: VesselLive; age: number }[] {
+  const out: { vessel: VesselLive; age: number }[] = [];
+  for (const v of vessels) {
+    if (v.nav_status === 1 || v.nav_status === 5) continue;
+    if (v.lat == null || v.lon == null) continue;
+    if ((v.sog ?? 0) < MIN_SPEED_KN) continue;
+    if (!v.last_seen) continue;
+    const age = dataAge(v, nowMs);
+    if (age > MAX_DATA_AGE_S) out.push({ vessel: v, age });
+  }
+  out.sort((a, b) => b.age - a.age);
+  return out;
+}
+
 /** Pomoćno: ime plovila za prikaz. */
 export function vesselName(v: VesselLive): string {
   return label(v);
+}
+
+/** Pomoćno: starost podataka kao "Xs" / "Ym" / "Zh". */
+export function formatAge(seconds: number): string {
+  const s = Math.max(0, Math.round(seconds));
+  if (s < 60) return `${s}s`;
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  return `${Math.floor(s / 3600)}h`;
 }
 
 /** Pomoćno: TCPA kao "m:ss". */

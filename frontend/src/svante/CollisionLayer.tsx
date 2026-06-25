@@ -25,8 +25,10 @@ export function CollisionLayer({ encounters }: Props) {
     <>
       {ordered.map((e) => {
         const color = COLOR[e.level];
-        const aPos: [number, number] = [e.a.vessel.lat!, e.a.vessel.lon!];
-        const bPos: [number, number] = [e.b.vessel.lat!, e.b.vessel.lon!];
+        // Kreni od dead-reckoning pozicije ("sada"), ne od sirovog (zakašnjelog)
+        // očitanja — tako se putanja poklapa s CPA računom. predict(k, 0) = k.pos.
+        const aPos = predict(e.a, 0);
+        const bPos = predict(e.b, 0);
         const aPredict = predict(e.a, PREDICT_S);
         const bPredict = predict(e.b, PREDICT_S);
 

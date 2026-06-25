@@ -1,8 +1,12 @@
 import { useState } from 'react';
-import { formatDcpa, formatTcpa, vesselName, type ColregType, type Encounter } from './collision';
-import type { CollisionLevel } from './useCollisionWatch';
+import { MAX_DATA_AGE_S, formatAge, formatDcpa, formatTcpa, vesselName, type ColregType, type Encounter } from './collision';
+import type { CollisionLevel, StaleVessel } from './useCollisionWatch';
 
 const MONO = 'var(--font-mono)';
+
+// Iznad ove starosti (s) dead-reckoning pozicija postaje primjetno nesigurna,
+// pa starost bojamo žuto kao upozorenje (i dalje unutar MAX_DATA_AGE_S).
+const AGE_SOFT_S = Math.min(30, MAX_DATA_AGE_S);
 
 const COLREG_LABEL: Record<ColregType, string> = {
   'head-on': 'Pramac u pramac',
@@ -14,6 +18,7 @@ const COLREG_LABEL: Record<ColregType, string> = {
 interface Props {
   level: CollisionLevel;
   encounters: Encounter[];
+  staleVessels: StaleVessel[];
   onSelect: (mmsi: number) => void;
   isMobile: boolean;
   topOffset: number;
@@ -26,9 +31,10 @@ function criColor(cri: number): string {
 }
 
 /** Ploča s popisom rizičnih parova — CPA/TCPA, CRI i COLREG savjet. */
-export function CollisionPanel({ level, encounters, onSelect, isMobile, topOffset }: Props) {
+export function CollisionPanel({ level, encounters, staleVessels, onSelect, isMobile, topOffset }: Props) {
   const [open, setOpen] = useState(!isMobile);
   const count = encounters.length;
+  const staleCount = staleVessels.length;
 
   const headColor = level === 'alarm' ? '#ef4444' : level === 'warning' ? '#f59e0b' : 'var(--accent)';
 
@@ -64,7 +70,7 @@ export function CollisionPanel({ level, encounters, onSelect, isMobile, topOffse
           animation: level === 'alarm' ? 'alertGlow 1.1s ease-in-out infinite' : 'none',
         }}
       >
-        🛟 Sudari{count > 0 ? ` (${count})` : ''}
+        🛟 Sudari{count > 0 ? ` (${count})` : ''}{staleCount > 0 ? ` ⚠${staleCount}` : ''}
       </button>
     );
   }
@@ -97,6 +103,30 @@ export function CollisionPanel({ level, encounters, onSelect, isMobile, topOffse
           ×
         </button>
       </div>
+
+      {staleCount > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 6,
+          padding: '7px 12px', borderBottom: '1px solid var(--border-color)',
+          background: 'rgba(245,158,11,0.10)',
+          fontSize: 10.5, lineHeight: 1.35, color: '#f59e0b',
+        }}>
+          <span style={{ flexShrink: 0 }}>⚠</span>
+          <span>
+            {staleCount} {staleCount === 1 ? 'plovilo' : 'plovila'} bez svježih podataka
+            {' '}(&gt;{formatAge(MAX_DATA_AGE_S)}) — izvan detekcije sudara:{' '}
+            {staleVessels.map((s, i) => (
+              <span key={s.vessel.mmsi}>
+                {i > 0 && ', '}
+                <button onClick={() => onSelect(s.vessel.mmsi)} style={staleNameBtn}>
+                  {vesselName(s.vessel)}
+                </button>
+                {' '}({formatAge(s.age)})
+              </span>
+            ))}
+          </span>
+        </div>
+      )}
 
       <div style={{ maxHeight: isMobile ? 150 : 280, overflowY: 'auto', padding: '6px 10px' }}>
         {count === 0 ? (
@@ -138,6 +168,12 @@ export function CollisionPanel({ level, encounters, onSelect, isMobile, topOffse
                 <div style={{ display: 'flex', gap: 10, fontSize: 10, color: 'var(--text-secondary)', fontFamily: MONO, marginBottom: 5 }}>
                   <span>TCPA <b style={{ color: 'var(--text-primary)' }}>{formatTcpa(e.tcpa)}</b></span>
                   <span>DCPA <b style={{ color: 'var(--text-primary)' }}>{formatDcpa(e.dcpa)}</b></span>
+                  <span
+                    title="Starost najstarijeg AIS očitanja u paru (dead-reckoning kompenzira pomak)"
+                    style={{ color: e.age >= AGE_SOFT_S ? '#f59e0b' : 'var(--text-dim)' }}
+                  >
+                    Δt {formatAge(e.age)}
+                  </span>
                   <span style={{ marginLeft: 'auto', color: c, fontWeight: 800 }}>
                     CRI {(e.cri * 100).toFixed(0)}%
                   </span>
@@ -176,6 +212,18 @@ const nameBtn: React.CSSProperties = {
   color: 'var(--accent)',
   fontWeight: 700,
   fontSize: 12,
+  cursor: 'pointer',
+  padding: 0,
+  textDecoration: 'underline',
+  textUnderlineOffset: 2,
+};
+
+const staleNameBtn: React.CSSProperties = {
+  background: 'transparent',
+  border: 'none',
+  color: '#f59e0b',
+  fontWeight: 700,
+  fontSize: 10.5,
   cursor: 'pointer',
   padding: 0,
   textDecoration: 'underline',
