@@ -5,8 +5,10 @@ import type { TrackPoint, VesselLive } from '../types';
 import { CameraOverlay } from '../components/CameraOverlay';
 import { CHANNEL_CENTER, CHANNEL_ZOOM } from './channel';
 import { ChannelOverlay } from './ChannelOverlay';
+import { CollisionLayer } from './CollisionLayer';
 import { SvanteVesselMarker } from './SvanteVesselMarker';
 import type { ChannelWatch } from './useChannelWatch';
+import type { Encounter } from './collision';
 
 const MAP_CENTER: [number, number] = [
   parseFloat(import.meta.env.VITE_MAP_CENTER_LAT ?? String(CHANNEL_CENTER[0])),
@@ -17,6 +19,7 @@ const MAP_ZOOM = parseInt(import.meta.env.VITE_MAP_CENTER_ZOOM ?? String(CHANNEL
 interface Props {
   vessels: VesselLive[];
   watch: ChannelWatch;
+  encounters: Encounter[];
   selectedMmsi: number | null;
   track: TrackPoint[];
   onSelect: (mmsi: number) => void;
@@ -50,7 +53,7 @@ function MapController({ vessels, selectedMmsi, resetKey }: { vessels: VesselLiv
 }
 
 /** Karta fokusirana na Kanal sv. Ante s označenom nadzornom zonom */
-export function SvanteMap({ vessels, watch, selectedMmsi, track, onSelect, resetKey }: Props) {
+export function SvanteMap({ vessels, watch, encounters, selectedMmsi, track, onSelect, resetKey }: Props) {
   const channelByMmsi = new Map(watch.channelVessels.map((c) => [c.vessel.mmsi, c]));
 
   const trackPositions = track
@@ -75,6 +78,8 @@ export function SvanteMap({ vessels, watch, selectedMmsi, track, onSelect, reset
         <MapController vessels={vessels} selectedMmsi={selectedMmsi} resetKey={resetKey} />
 
         <ChannelOverlay level={watch.level} />
+
+        <CollisionLayer encounters={encounters} />
 
         {trackPositions.length >= 2 && (
           <Polyline positions={trackPositions} color="#f59e0b" weight={2} opacity={0.75} />

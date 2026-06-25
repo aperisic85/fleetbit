@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { VesselLive } from '../types';
 import { SPEED_LIMIT_KN, channelDirection, isInChannel, type ChannelDirection } from './channel';
+import { beep } from './sound';
 
 export interface ChannelVessel {
   vessel: VesselLive;
@@ -30,45 +31,6 @@ let eventId = 1;
 
 function vesselLabel(v: VesselLive): string {
   return v.name?.trim() || `MMSI ${v.mmsi}`;
-}
-
-// ── Zvučni alarm (WebAudio) ──────────────────────────────────────────────────
-
-let audioCtx: AudioContext | null = null;
-
-function playTone(freq: number, start: number, dur: number) {
-  if (!audioCtx) return;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = 'square';
-  osc.frequency.value = freq;
-  gain.gain.setValueAtTime(0.0001, audioCtx.currentTime + start);
-  gain.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + start + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + start + dur);
-  osc.connect(gain).connect(audioCtx.destination);
-  osc.start(audioCtx.currentTime + start);
-  osc.stop(audioCtx.currentTime + start + dur + 0.05);
-}
-
-function beep(kind: 'warning' | 'alarm') {
-  try {
-    const Ctx = window.AudioContext
-      ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!Ctx) return;
-    audioCtx ??= new Ctx();
-    if (audioCtx.state === 'suspended') void audioCtx.resume();
-    if (kind === 'warning') {
-      playTone(660, 0, 0.18);
-      playTone(660, 0.28, 0.18);
-    } else {
-      playTone(880, 0, 0.15);
-      playTone(1100, 0.2, 0.15);
-      playTone(880, 0.4, 0.15);
-      playTone(1100, 0.6, 0.25);
-    }
-  } catch {
-    // zvuk nije kritičan — ignoriraj (npr. autoplay policy)
-  }
 }
 
 // ── Hook ─────────────────────────────────────────────────────────────────────
