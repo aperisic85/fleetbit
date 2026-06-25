@@ -1,10 +1,13 @@
 import { SPEED_LIMIT_KN } from './channel';
+import { formatDcpa, formatTcpa, vesselName, type Encounter } from './collision';
 import type { ChannelLevel, ChannelVessel } from './useChannelWatch';
 
 interface Props {
   level: ChannelLevel;
   channelVessels: ChannelVessel[];
   speedingVessels: ChannelVessel[];
+  /** Najrizičniji par sudara s razinom 'alarm', ako postoji */
+  collisionAlarm: Encounter | null;
   isMobile: boolean;
 }
 
@@ -12,8 +15,20 @@ function label(v: ChannelVessel): string {
   return v.vessel.name?.trim() || `MMSI ${v.vessel.mmsi}`;
 }
 
-/** Veliki alarmni banner preko karte — samo za upozorenje/alarm */
-export function AlertBanner({ level, channelVessels, speedingVessels, isMobile }: Props) {
+/** Veliki alarmni banner preko karte — rizik sudara ima prednost pred kanalom */
+export function AlertBanner({ level, channelVessels, speedingVessels, collisionAlarm, isMobile }: Props) {
+  // Rizik sudara je najviši prioritet.
+  if (collisionAlarm) {
+    const e = collisionAlarm;
+    const color = '#ef4444';
+    return (
+      <BannerShell color={color} alarm isMobile={isMobile} icon="🛟"
+        title="ALARM · RIZIK SUDARA"
+        text={`${vesselName(e.a.vessel)} ⇄ ${vesselName(e.b.vessel)} — CPA ${formatDcpa(e.dcpa)} za ${formatTcpa(e.tcpa)}. ${e.colreg.advice}`}
+      />
+    );
+  }
+
   if (level !== 'meeting' && level !== 'speeding') return null;
 
   const alarm = level === 'speeding';
@@ -25,6 +40,25 @@ export function AlertBanner({ level, channelVessels, speedingVessels, isMobile }
       : `${speedingVessels.length} plovila prekoračuju ${SPEED_LIMIT_KN} kn u kanalu!`
     : `${channelVessels.length} plovila istovremeno u kanalu — mogući susret`;
 
+  return (
+    <BannerShell color={color} alarm={alarm} isMobile={isMobile}
+      icon={alarm ? '🚨' : '⚠️'}
+      title={alarm ? 'ALARM · PREKORAČENJE BRZINE' : 'UPOZORENJE · SUSRET U KANALU'}
+      text={text}
+    />
+  );
+}
+
+interface ShellProps {
+  color: string;
+  alarm: boolean;
+  isMobile: boolean;
+  icon: string;
+  title: string;
+  text: string;
+}
+
+function BannerShell({ color, alarm, isMobile, icon, title, text }: ShellProps) {
   return (
     <div style={{
       position: 'absolute',
@@ -46,11 +80,11 @@ export function AlertBanner({ level, channelVessels, speedingVessels, isMobile }
       animation: alarm ? 'alertGlow 1s ease-in-out infinite' : 'none',
     }}>
       <span style={{ fontSize: 22, flexShrink: 0, animation: 'wsPulse 0.8s ease-in-out infinite' }}>
-        {alarm ? '🚨' : '⚠️'}
+        {icon}
       </span>
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 11, fontWeight: 800, color, letterSpacing: '0.12em', marginBottom: 2 }}>
-          {alarm ? 'ALARM · PREKORAČENJE BRZINE' : 'UPOZORENJE · SUSRET U KANALU'}
+          {title}
         </div>
         <div style={{ fontSize: 13, fontWeight: 600, color: '#fef2f2' }}>
           {text}

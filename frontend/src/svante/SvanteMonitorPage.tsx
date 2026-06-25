@@ -9,7 +9,9 @@ import { SvanteMap } from './SvanteMap';
 import { ChannelPanel } from './ChannelPanel';
 import { AlertBanner } from './AlertBanner';
 import { EventLog } from './EventLog';
+import { CollisionPanel } from './CollisionPanel';
 import { useChannelWatch } from './useChannelWatch';
+import { useCollisionWatch } from './useCollisionWatch';
 
 const MONO = "'IBM Plex Mono', ui-monospace, monospace";
 
@@ -45,6 +47,7 @@ export default function SvanteMonitorPage({ mode }: Props) {
   const [resetKey, setResetKey] = useState(0);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
   const [soundOn, setSoundOn] = useState(() => localStorage.getItem('svante_sound') !== 'off');
+  const [collisionOn, setCollisionOn] = useState(() => localStorage.getItem('svante_collision') !== 'off');
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth <= 768);
@@ -56,6 +59,13 @@ export default function SvanteMonitorPage({ mode }: Props) {
     setSoundOn((s) => {
       localStorage.setItem('svante_sound', s ? 'off' : 'on');
       return !s;
+    });
+  }, []);
+
+  const toggleCollision = useCallback(() => {
+    setCollisionOn((c) => {
+      localStorage.setItem('svante_collision', c ? 'off' : 'on');
+      return !c;
     });
   }, []);
 
@@ -89,6 +99,20 @@ export default function SvanteMonitorPage({ mode }: Props) {
   }, [vessels, now, selectedMmsi]);
 
   const watch = useChannelWatch(mapVessels, soundOn);
+  const collision = useCollisionWatch(mapVessels, soundOn, collisionOn);
+
+  // Objedinjeni dnevnik: kanal + rizik sudara, sortirano po vremenu (najnovije gore).
+  const logEvents = useMemo(
+    () => [...watch.events, ...collision.events]
+      .sort((a, b) => b.time.getTime() - a.time.getTime())
+      .slice(0, 80),
+    [watch.events, collision.events],
+  );
+
+  const collisionAlarm = useMemo(
+    () => collision.encounters.find((e) => e.level === 'alarm') ?? null,
+    [collision.encounters],
+  );
 
   const handleSelect = useCallback((mmsi: number) => {
     setTrack([]);
@@ -101,7 +125,7 @@ export default function SvanteMonitorPage({ mode }: Props) {
     ? { color: 'var(--c-warning)', bg: 'color-mix(in srgb, var(--c-warning) 16%, transparent)', border: 'color-mix(in srgb, var(--c-warning) 40%, transparent)', label: 'SPAJANJE', pulse: true }
     : { color: 'var(--c-alarm)', bg: 'color-mix(in srgb, var(--c-alarm) 16%, transparent)', border: 'color-mix(in srgb, var(--c-alarm) 40%, transparent)', label: 'OFFLINE', pulse: false };
 
-  const bannerActive = watch.level === 'meeting' || watch.level === 'speeding';
+  const bannerActive = watch.level === 'meeting' || watch.level === 'speeding' || collisionAlarm != null;
   const panelTop = isMobile && bannerActive ? 86 : 12;
   const showVesselPanel = mode === 'app' && selectedMmsi != null;
 
@@ -163,6 +187,20 @@ export default function SvanteMonitorPage({ mode }: Props) {
             }} />
             {wsCfg.label}
           </span>
+
+          {/* Detekcija sudara */}
+          <button
+            onClick={toggleCollision}
+            title={collisionOn ? 'Isključi detekciju sudara' : 'Uključi detekciju sudara'}
+            style={{
+              background: collisionOn ? 'var(--accent-soft)' : 'transparent',
+              border: `1px solid ${collisionOn ? 'var(--accent-border)' : 'var(--border-color)'}`,
+              borderRadius: 8, padding: '5px 9px', fontSize: 14, cursor: 'pointer', lineHeight: 1,
+              opacity: collisionOn ? 1 : 0.55,
+            }}
+          >
+            🛟
+          </button>
 
           {/* Zvuk alarma */}
           <button
@@ -229,6 +267,7 @@ export default function SvanteMonitorPage({ mode }: Props) {
         <SvanteMap
           vessels={mapVessels}
           watch={watch}
+          encounters={collision.encounters}
           selectedMmsi={selectedMmsi}
           track={showVesselPanel ? track : []}
           onSelect={handleSelect}
@@ -239,6 +278,7 @@ export default function SvanteMonitorPage({ mode }: Props) {
           level={watch.level}
           channelVessels={watch.channelVessels}
           speedingVessels={watch.speedingVessels}
+          collisionAlarm={collisionAlarm}
           isMobile={isMobile}
         />
 
@@ -246,6 +286,16 @@ export default function SvanteMonitorPage({ mode }: Props) {
           <ChannelPanel
             level={watch.level}
             channelVessels={watch.channelVessels}
+            onSelect={handleSelect}
+            isMobile={isMobile}
+            topOffset={panelTop}
+          />
+        )}
+
+        {collisionOn && (
+          <CollisionPanel
+            level={collision.level}
+            encounters={collision.encounters}
             onSelect={handleSelect}
             isMobile={isMobile}
             topOffset={panelTop}
@@ -261,7 +311,7 @@ export default function SvanteMonitorPage({ mode }: Props) {
           />
         )}
 
-        <EventLog events={watch.events} isMobile={isMobile} />
+        <EventLog events={logEvents} isMobile={isMobile} />
 
         {/* Recentriraj na kanal */}
         <button
