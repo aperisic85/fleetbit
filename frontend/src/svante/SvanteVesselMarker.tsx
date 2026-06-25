@@ -3,7 +3,16 @@ import L from 'leaflet';
 import type { VesselLive } from '../types';
 import { ACCENT_GREEN } from '../lib/shipType';
 import { SPEED_LIMIT_KN } from './channel';
+import { MAX_DATA_AGE_S } from './collision';
 import type { ChannelVessel } from './useChannelWatch';
+
+/** Starost zadnjeg AIS očitanja u sekundama (∞ ako nema vremenske oznake). */
+function ageSeconds(last_seen: string | null): number {
+  if (!last_seen) return Infinity;
+  const t = new Date(last_seen).getTime();
+  if (!Number.isFinite(t)) return Infinity;
+  return Math.max(0, (Date.now() - t) / 1000);
+}
 
 // Boja po tipu broda (AIS ITU-R M.1371 kodovi, de-facto ECDIS konvencija)
 function vesselColor(v: VesselLive): string {
@@ -20,11 +29,13 @@ function vesselColor(v: VesselLive): string {
   return '#64748b';
 }
 
-function buildIcon(v: VesselLive, opts: { selected: boolean; inChannel: boolean; speeding: boolean }) {
+function buildIcon(v: VesselLive, opts: { selected: boolean; inChannel: boolean; speeding: boolean; stale: boolean }) {
   const angle = v.cog ?? v.heading ?? 0;
   const color = opts.speeding ? '#ef4444' : opts.selected ? '#f59e0b' : vesselColor(v);
   const size = opts.selected || opts.inChannel ? 22 : 18;
   const half = size / 2;
+  // Zastarjelo očitanje: priguši marker (pozicija nije pouzdana, izvan CPA računa).
+  const dim = opts.stale && !opts.selected ? 'opacity:0.45;' : '';
 
   // Plovila u kanalu dobivaju prsten; prekršitelji brzine pulsiraju crveno
   const ring = opts.speeding
@@ -38,7 +49,7 @@ function buildIcon(v: VesselLive, opts: { selected: boolean; inChannel: boolean;
   return L.divIcon({
     className: '',
     html: `
-      <div style="position:relative;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;">
+      <div style="position:relative;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;${dim}">
         ${ring}
         <div style="
           width:0; height:0;
@@ -78,6 +89,7 @@ export function SvanteVesselMarker({ vessel, channelInfo, selected, onClick }: P
   const speeding = channelInfo?.speeding ?? false;
   const color = speeding ? '#ef4444' : inChannel ? ACCENT_GREEN : vesselColor(vessel);
   const sog = vessel.sog;
+  const stale = ageSeconds(vessel.last_seen) > MAX_DATA_AGE_S;
 
   const statusText = speeding
     ? `⚠ ${sog?.toFixed(1)} kn — prekoračenje (limit ${SPEED_LIMIT_KN} kn)`
@@ -94,7 +106,7 @@ export function SvanteVesselMarker({ vessel, channelInfo, selected, onClick }: P
   return (
     <Marker
       position={[vessel.lat, vessel.lon]}
-      icon={buildIcon(vessel, { selected, inChannel, speeding })}
+      icon={buildIcon(vessel, { selected, inChannel, speeding, stale })}
       eventHandlers={{ click: onClick }}
       zIndexOffset={speeding ? 2000 : selected || inChannel ? 1000 : 0}
     >
@@ -123,7 +135,11 @@ export function SvanteVesselMarker({ vessel, channelInfo, selected, onClick }: P
           )}
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-dimmer)' }}>
             <span>MMSI {vessel.mmsi}</span>
-            {vessel.last_seen && <span style={{ color: 'var(--text-dim)' }}>{formatLastSeen(vessel.last_seen)} ago</span>}
+            {vessel.last_seen && (
+              <span style={{ color: stale ? '#f59e0b' : 'var(--text-dim)', fontWeight: stale ? 700 : 400 }}>
+                {stale ? '⚠ ' : ''}{formatLastSeen(vessel.last_seen)} ago
+              </span>
+            )}
           </div>
         </div>
       </Tooltip>
