@@ -6,6 +6,7 @@ import { useLiveVessels } from '../useLiveVessels';
 import { VesselPanel } from '../components/VesselPanel';
 import { useAuth } from '../AuthContext';
 import { SvanteMap } from './SvanteMap';
+import { isInMonitorZone } from './channel';
 import { ChannelPanel } from './ChannelPanel';
 import { AlertBanner } from './AlertBanner';
 import { EventLog } from './EventLog';
@@ -83,11 +84,13 @@ export default function SvanteMonitorPage({ mode }: Props) {
     return () => clearInterval(id);
   }, []);
 
-  // Samo svježa plovila (zadnjih 10 min) — lokalna zona, AIS javlja često
+  // Samo svježa plovila (zadnjih 10 min) unutar nadzorne zone Kanala sv. Ante —
+  // ostatak Jadrana se ne prati (manje markera, manje lažnih alarma).
   const mapVessels = useMemo(() => {
     const cutoff = now - 10 * 60 * 1000;
     const fresh = Array.from(vessels.values()).filter(
       (v) => v.lat != null && v.lon != null
+        && isInMonitorZone(v.lat, v.lon)
         && v.last_seen != null && new Date(v.last_seen).getTime() >= cutoff
     );
     // Odabrani brod ostaje na karti i kad zastari — ima otvoren panel i trail.
