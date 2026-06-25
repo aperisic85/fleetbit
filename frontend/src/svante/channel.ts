@@ -23,6 +23,14 @@ export const CHANNEL_CENTER: [number, number] = [43.7265, 15.8665];
 export const CHANNEL_ZOOM = 15;
 
 /**
+ * Polumjer nadzorne zone oko centra kanala (NM). Plovila izvan zone se ne
+ * prate — ni na karti, ni u alarmima/detekciji sudara. Nadzire se samo Kanal
+ * sv. Ante (uz uske prilaze), a ne cijeli Jadran. Konfigurabilno preko
+ * VITE_MONITOR_RADIUS_NM; default 1.5 NM (pokriva kanal + prilaze).
+ */
+export const MONITOR_RADIUS_NM = parseFloat(import.meta.env.VITE_MONITOR_RADIUS_NM ?? '1.5');
+
+/**
  * Obris kanala: prvo zapadna/sjeverozapadna obala od svjetionika Jadrija
  * (južni ulaz) do izlaza, zatim jugoistočna obala od rta Martinska natrag
  * do tvrđave sv. Nikole. Južna stranica poligona = ulazna linija
@@ -63,6 +71,16 @@ export function isInChannel(lat: number, lon: number): boolean {
     if (intersects) inside = !inside;
   }
   return inside;
+}
+
+/**
+ * Je li točka unutar nadzorne zone (polumjer MONITOR_RADIUS_NM oko centra
+ * kanala). Brza ravninska aproksimacija — zona je mala pa je dovoljno točna.
+ */
+export function isInMonitorZone(lat: number, lon: number): boolean {
+  const dLat = (lat - CHANNEL_CENTER[0]) * 111320;
+  const dLon = (lon - CHANNEL_CENTER[1]) * 111320 * Math.cos((CHANNEL_CENTER[0] * Math.PI) / 180);
+  return Math.hypot(dLat, dLon) <= MONITOR_RADIUS_NM * 1852;
 }
 
 export type ChannelDirection = 'inbound' | 'outbound' | null;
