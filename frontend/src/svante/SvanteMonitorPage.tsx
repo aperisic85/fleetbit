@@ -33,7 +33,7 @@ interface Props {
 /**
  * Glavni VTS nadzorni ekran Kanala sv. Ante (Šibenik).
  * Prati prolaske kroz kanal, upozorava na susrete (2+ plovila u zoni)
- * i alarmira na prekoračenje brzine od 5 kn.
+ * i alarmira na prekoračenje ograničenja brzine (SPEED_LIMIT_KN).
  */
 export default function SvanteMonitorPage({ mode }: Props) {
   const { user, isAuthenticated, logout } = useAuth();

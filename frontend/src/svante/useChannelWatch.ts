@@ -76,7 +76,7 @@ function beep(kind: 'warning' | 'alarm') {
 /**
  * Prati plovila unutar Kanala sv. Ante:
  *  - upozorenje kad su 2+ plovila istovremeno u kanalu (susret)
- *  - alarm kad plovilo prekorači ograničenje od 5 kn
+ *  - alarm kad plovilo prekorači ograničenje brzine (SPEED_LIMIT_KN)
  *  - dnevnik ulazaka/izlazaka i prekršaja
  */
 export function useChannelWatch(vessels: VesselLive[], soundOn: boolean): ChannelWatch {

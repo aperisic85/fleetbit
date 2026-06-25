@@ -7,8 +7,13 @@
 // Z/SZ obala (Jadrija → izlaz) je još aproksimacija. Po potrebi je fino
 // podesi; sva logika čita samo ovaj popis.
 
-/** Ograničenje brzine u kanalu (čvorovi) */
-export const SPEED_LIMIT_KN = 5;
+/**
+ * Ograničenje brzine u kanalu (čvorovi).
+ * Konfigurabilno preko VITE_SPEED_LIMIT_KN; default 10 kn.
+ */
+export const SPEED_LIMIT_KN = parseFloat(
+  import.meta.env.VITE_SPEED_LIMIT_KN ?? '10',
+);
 
 /** Približni prosječni smjer osi kanala ulaz → Martinska (stupnjevi) */
 export const CHANNEL_AXIS_DEG = 58;
