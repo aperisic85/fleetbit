@@ -72,7 +72,10 @@ async fn run_position_broadcaster(
         interval.tick().await;
 
         if tx.receiver_count() == 0 {
-            continue; // nema spojenih klijenata, preskači upit
+            // Nema klijenata: pomakni cursor na "sada" kako se pri prvom
+            // spajanju ne bi reproducirao stari backlog nakon svježeg snapshota.
+            last_time = chrono::Utc::now();
+            continue;
         }
 
         match db::get_positions_since(&pool, last_time).await {
