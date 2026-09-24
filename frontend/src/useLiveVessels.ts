@@ -89,6 +89,19 @@ function applyUpdate(
     ? new Date(position.last_seen).getTime()
     : Date.now();
 
+  // Zakašnjeli/out-of-order WS update nikad ne smije pregaziti noviju
+  // poziciju iz snapshota ili druge AIS stanice.
+  if (existing?.last_seen) {
+    const existingTimeMs = new Date(existing.last_seen).getTime();
+    if (
+      Number.isFinite(existingTimeMs) &&
+      Number.isFinite(newTimeMs) &&
+      newTimeMs <= existingTimeMs
+    ) {
+      return prev;
+    }
+  }
+
   if (isValidLatLon(position.lat, position.lon)) {
     // Odbaci nemoguć skok pozicije — zadrži postojeću (ispravnu) lokaciju.
     if (existing && isTeleport(existing, position.lat, position.lon!, newTimeMs, position.sog)) {
@@ -185,6 +198,8 @@ export function useLiveVessels(): {
             for (const v of msg.vessels!) map.set(v.mmsi, v);
             return map;
           });
+        } else if (msg.type === 'resync') {
+          void refetch();
         } else if (msg.type === 'update' && msg.position?.mmsi != null) {
           setVessels((prev) => applyUpdate(prev, msg.position!));
         }
