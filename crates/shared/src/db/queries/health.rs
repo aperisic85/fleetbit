@@ -31,7 +31,7 @@ pub async fn upsert_station_health(pool: &PgPool, h: &StationHealthUpdate) -> Re
     .bind(&h.name)
     .bind(&h.addr)
     .bind(h.connected)
-    .bind(h.last_message_at)
+    .bind(h.last_message_at.clone())
     .bind(h.received_lines)
     .bind(h.parsed_messages)
     .bind(h.position_messages)
