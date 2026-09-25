@@ -48,7 +48,9 @@ pub async fn system_health(
     let offline = items.iter().filter(|v| v["status"] == "offline").count();
 
     Ok(Json(serde_json::json!({
-        "status": if offline > 0 { "degraded" } else { "ok" },
+        "status": if offline > 0 || degraded > 0 { "degraded" } else { "ok" },
+        "api": "ok",
+        "database": "ok",
         "stations_total": items.len(),
         "stations_online": online,
         "stations_degraded": degraded,
