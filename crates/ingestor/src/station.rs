@@ -201,7 +201,7 @@ async fn handle_stream(
             let _ = health_tx.send(health_update(
                 config,
                 true,
-                last_message_at,
+                last_message_at.clone(),
                 &counters,
                 None,
             )).await;
