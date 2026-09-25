@@ -1,7 +1,7 @@
 [[stations]]
 id   = 1
 name = "Labinstica"
-addr = "192.168.55.161:4712"
+addr = "192.168.51.161:4712"
 
 [[stations]]
 id   = 2
