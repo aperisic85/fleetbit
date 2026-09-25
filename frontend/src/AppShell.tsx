@@ -10,6 +10,7 @@ import { StatsWidget } from './components/StatsWidget';
 import { ToastContainer, type ToastMessage } from './components/Toast';
 import { AtonView } from './components/AtonView';
 import { ReplayControl } from './components/ReplayControl';
+import { SystemHealthBadge } from './components/SystemHealthBadge';
 import { useAuth } from './AuthContext';
 
 let toastIdCounter = 1;
@@ -340,6 +341,7 @@ export default function AppShell() {
               </span>
             </>
           )}
+          <SystemHealthBadge />
           <button
             onClick={() => setMode(m => m === 'atons' ? 'vessels' : 'atons')}
             style={{
