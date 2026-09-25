@@ -20,7 +20,12 @@ pub async fn ws_handler(
 }
 
 async fn handle_socket(mut socket: WebSocket, state: AppState) {
-    // 1. Pošalji snapshot trenutnih pozicija čim se klijent spoji
+    // 1. Pretplati se prije snapshota kako nijedan update koji stigne tijekom
+    // DB upita/sendinga snapshota ne bi bio izgubljen.
+    let mut rx: broadcast::Receiver<Arc<shared::models::vessel::VesselPosition>> =
+        state.position_tx.subscribe();
+
+    // 2. Pošalji snapshot trenutnih pozicija čim se klijent spoji
     match db::get_live_vessels(&state.pool).await {
         Ok(vessels) => {
             let msg = serde_json::json!({ "type": "snapshot", "vessels": vessels });
@@ -38,9 +43,6 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
         }
     }
 
-    // 2. Streami real-time updateove
-    let mut rx: broadcast::Receiver<Arc<shared::models::vessel::VesselPosition>> =
-        state.position_tx.subscribe();
 
     // Periodički keepalive: drži vezu toplom kroz proxyje i otkriva mrtve
     // klijente (slanje na zatvoreni socket vrati grešku → petlja prekida).
@@ -59,6 +61,10 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
                     }
                     Err(broadcast::error::RecvError::Lagged(n)) => {
                         tracing::warn!("WS klijent zaostao za {n} poruka");
+                        let msg = serde_json::json!({ "type": "resync" });
+                        if socket.send(Message::Text(msg.to_string().into())).await.is_err() {
+                            break;
+                        }
                     }
                     Err(broadcast::error::RecvError::Closed) => break,
                 }
