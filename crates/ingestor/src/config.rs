@@ -12,7 +12,6 @@ pub struct StationConfig {
 pub struct IngestorConfig {
     pub stations: Vec<StationConfig>,
     pub reconnect_delay: Duration,
-    pub max_reconnect_attempts: u32,
     pub read_timeout: Duration,
 }
 
@@ -41,7 +40,6 @@ impl IngestorConfig {
         Self {
             stations,
             reconnect_delay: Duration::from_secs(5),
-            max_reconnect_attempts: 10,
             read_timeout: Duration::from_secs(30),
         }
     }
