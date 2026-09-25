@@ -3,3 +3,4 @@ pub mod aton;
 pub mod fleet;
 pub mod zone;
 pub mod user;
+pub mod health;

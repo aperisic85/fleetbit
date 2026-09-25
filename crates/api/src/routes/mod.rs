@@ -9,6 +9,7 @@ mod atons;
 mod auth;
 mod vessels;
 mod ws;
+mod health;
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -28,7 +29,8 @@ pub fn router() -> Router<AppState> {
                 .route("/replay/snapshot", get(vessels::replay_snapshot))
                 .route("/replay/range", get(vessels::replay_range))
                 // ── AtoN pregled ──────────────────────────────────────────
-                .route("/atons/live", get(atons::live_atons)),
+                .route("/atons/live", get(atons::live_atons))
+                .route("/system/health", get(health::system_health)),
         )
         // WS /ws — real-time stream (javno, gosti vide brodove)
         .route("/ws", get(ws::ws_handler))

@@ -12,8 +12,10 @@ use tracing::info;
 use config::IngestorConfig;
 use shared::db::pool::create_pool;
 use shared::db::queries::atons::{upsert_aton, upsert_meteo};
+use shared::db::queries::health::upsert_station_health;
 use shared::db::queries::vessels::{insert_position, upsert_vessel_static};
 use shared::models::aton::{AtonUpdate, MeteoUpdate};
+use shared::models::health::StationHealthUpdate;
 use shared::models::vessel::{PositionUpdate, StaticUpdate};
 
 #[tokio::main]
@@ -39,6 +41,7 @@ async fn main() -> Result<()> {
     let (static_tx, mut static_rx) = mpsc::channel::<StaticUpdate>(1_000);
     let (aton_tx, mut aton_rx)     = mpsc::channel::<AtonUpdate>(1_000);
     let (meteo_tx, mut meteo_rx)   = mpsc::channel::<MeteoUpdate>(1_000);
+    let (health_tx, mut health_rx) = mpsc::channel::<StationHealthUpdate>(256);
 
     // Spawn task za svaku stanicu
     let reconnect_delay = config.reconnect_delay;
@@ -49,6 +52,7 @@ async fn main() -> Result<()> {
         let static_tx = static_tx.clone();
         let aton_tx   = aton_tx.clone();
         let meteo_tx  = meteo_tx.clone();
+        let health_tx = health_tx.clone();
 
         tokio::spawn(async move {
             station::run(
@@ -57,6 +61,7 @@ async fn main() -> Result<()> {
                 static_tx,
                 aton_tx,
                 meteo_tx,
+                health_tx,
                 reconnect_delay,
                 read_timeout,
             )
@@ -100,6 +105,16 @@ async fn main() -> Result<()> {
         while let Some(update) = meteo_rx.recv().await {
             if let Err(e) = upsert_meteo(&pool_meteo, &update).await {
                 tracing::error!("Failed to upsert meteo: {}", e);
+            }
+        }
+    });
+
+    // DB writer za health AIS stanica
+    let pool_health = pool.clone();
+    tokio::spawn(async move {
+        while let Some(update) = health_rx.recv().await {
+            if let Err(e) = upsert_station_health(&pool_health, &update).await {
+                tracing::error!("Failed to upsert AIS station health: {}", e);
             }
         }
     });

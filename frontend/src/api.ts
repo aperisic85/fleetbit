@@ -141,3 +141,10 @@ export function createWebSocket(onMessage: (data: unknown) => void): WebSocket {
   };
   return ws;
 }
+
+
+export async function fetchSystemHealth() {
+  const res = await fetch(`${BASE}/system/health`);
+  if (!res.ok) throw new Error('Failed to fetch system health');
+  return res.json();
+}
