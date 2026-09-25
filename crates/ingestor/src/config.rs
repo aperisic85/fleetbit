@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::time::Duration;
 use serde::Deserialize;
 
@@ -12,7 +13,6 @@ pub struct StationConfig {
 pub struct IngestorConfig {
     pub stations: Vec<StationConfig>,
     pub reconnect_delay: Duration,
-    pub max_reconnect_attempts: u32,
     pub read_timeout: Duration,
 }
 
@@ -38,11 +38,21 @@ impl IngestorConfig {
                 Self::default_stations()
             });
 
+        warn_duplicate_endpoints(&stations);
+
+        let reconnect_delay_secs = std::env::var("AIS_RECONNECT_DELAY_SECS")
+            .ok()
+            .and_then(|v| v.parse::<u64>().ok())
+            .unwrap_or(5);
+        let read_timeout_secs = std::env::var("AIS_READ_TIMEOUT_SECS")
+            .ok()
+            .and_then(|v| v.parse::<u64>().ok())
+            .unwrap_or(60);
+
         Self {
             stations,
-            reconnect_delay: Duration::from_secs(5),
-            max_reconnect_attempts: 10,
-            read_timeout: Duration::from_secs(30),
+            reconnect_delay: Duration::from_secs(reconnect_delay_secs.max(1)),
+            read_timeout: Duration::from_secs(read_timeout_secs.max(10)),
         }
     }
 
@@ -63,6 +73,24 @@ impl Default for IngestorConfig {
             reconnect_delay: Duration::from_secs(5),
             max_reconnect_attempts: 10,
             read_timeout: Duration::from_secs(30),
+        }
+    }
+}
+
+
+fn warn_duplicate_endpoints(stations: &[StationConfig]) {
+    let mut seen: HashMap<&str, &StationConfig> = HashMap::new();
+
+    for station in stations {
+        if let Some(existing) = seen.insert(station.addr.as_str(), station) {
+            tracing::warn!(
+                addr = %station.addr,
+                station_id = station.id,
+                station = %station.name,
+                other_station_id = existing.id,
+                other_station = %existing.name,
+                "Multiple AIS stations use the same endpoint"
+            );
         }
     }
 }

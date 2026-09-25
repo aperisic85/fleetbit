@@ -41,6 +41,9 @@ async fn main() -> Result<()> {
     let (meteo_tx, mut meteo_rx)   = mpsc::channel::<MeteoUpdate>(1_000);
 
     // Spawn task za svaku stanicu
+    let reconnect_delay = config.reconnect_delay;
+    let read_timeout = config.read_timeout;
+
     for station in config.stations {
         let pos_tx    = pos_tx.clone();
         let static_tx = static_tx.clone();
@@ -48,7 +51,16 @@ async fn main() -> Result<()> {
         let meteo_tx  = meteo_tx.clone();
 
         tokio::spawn(async move {
-            station::run(station, pos_tx, static_tx, aton_tx, meteo_tx).await;
+            station::run(
+                station,
+                pos_tx,
+                static_tx,
+                aton_tx,
+                meteo_tx,
+                reconnect_delay,
+                read_timeout,
+            )
+            .await;
         });
     }
 
